@@ -248,7 +248,7 @@ Examples:
 var fileInfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Display file storage information",
-	Long: `Get statistics about your file storage including total files, storage used, files by content type, and files by folder.
+	Long: `Get information about your file storage including total files, storage used, files by content type, and files by folder.
 
 Examples:
   cloud-storage-api-cli file info`,
@@ -260,67 +260,67 @@ Examples:
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		// Fetch statistics
-		var statsResp file.FileStatisticsResponse
-		if err := apiClient.Get("/api/files/statistics", &statsResp); err != nil {
-			return fmt.Errorf("failed to get file statistics: %w", err)
+		// Fetch file information
+		var fileInfo file.FileStatisticsResponse
+		if err := apiClient.Get("/api/files/statistics", &fileInfo); err != nil {
+			return fmt.Errorf("failed to get file information: %w", err)
 		}
 
-		// Display statistics
-		displayFileInfo(&statsResp)
+		// Display file information
+		displayFileInfo(&fileInfo)
 
 		return nil
 	},
 }
 
-// displayFileInfo displays file statistics in a formatted way
-func displayFileInfo(stats *file.FileStatisticsResponse) {
+// displayFileInfo displays file information in a formatted way
+func displayFileInfo(fileInfo *file.FileStatisticsResponse) {
 	fmt.Println("\nFile Storage Information")
 	fmt.Println(strings.Repeat("=", 50))
 
 	// Summary section
 	fmt.Println("\nSummary:")
-	fmt.Printf("  Total Files:      %d\n", stats.TotalFiles)
-	fmt.Printf("  Storage Used:     %s\n", stats.StorageUsed)
-	fmt.Printf("  Average File Size: %s\n", formatFileSize(stats.AverageFileSize))
+	fmt.Printf("  Total Files:      %d\n", fileInfo.TotalFiles)
+	fmt.Printf("  Storage Used:     %s\n", fileInfo.StorageUsed)
+	fmt.Printf("  Average File Size: %s\n", formatFileSize(fileInfo.AverageFileSize))
 
 	// By content type section
-	if len(stats.ByContentType) > 0 {
+	if len(fileInfo.ByContentType) > 0 {
 		fmt.Println("\nBy Content Type:")
 		fmt.Println(strings.Repeat("-", 50))
 		fmt.Printf("%-30s %s\n", "Content Type", "Count")
 		fmt.Println(strings.Repeat("-", 50))
 
 		// Sort content types alphabetically
-		contentTypes := make([]string, 0, len(stats.ByContentType))
-		for ct := range stats.ByContentType {
+		contentTypes := make([]string, 0, len(fileInfo.ByContentType))
+		for ct := range fileInfo.ByContentType {
 			contentTypes = append(contentTypes, ct)
 		}
 		sort.Strings(contentTypes)
 
 		for _, ct := range contentTypes {
-			fmt.Printf("%-30s %d\n", ct, stats.ByContentType[ct])
+			fmt.Printf("%-30s %d\n", ct, fileInfo.ByContentType[ct])
 		}
 	} else {
 		fmt.Println("\nBy Content Type: None")
 	}
 
 	// By folder section
-	if len(stats.ByFolder) > 0 {
+	if len(fileInfo.ByFolder) > 0 {
 		fmt.Println("\nBy Folder:")
 		fmt.Println(strings.Repeat("-", 50))
 		fmt.Printf("%-30s %s\n", "Folder Path", "Count")
 		fmt.Println(strings.Repeat("-", 50))
 
 		// Sort folders alphabetically
-		folders := make([]string, 0, len(stats.ByFolder))
-		for folder := range stats.ByFolder {
+		folders := make([]string, 0, len(fileInfo.ByFolder))
+		for folder := range fileInfo.ByFolder {
 			folders = append(folders, folder)
 		}
 		sort.Strings(folders)
 
 		for _, folder := range folders {
-			fmt.Printf("%-30s %d\n", folder, stats.ByFolder[folder])
+			fmt.Printf("%-30s %d\n", folder, fileInfo.ByFolder[folder])
 		}
 	} else {
 		fmt.Println("\nBy Folder: None")

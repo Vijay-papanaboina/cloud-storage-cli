@@ -71,3 +71,33 @@ type FileStatisticsResponse struct {
 	ByFolder        map[string]int64 `json:"byFolder"`
 }
 
+// FolderCreateRequest represents a request to create a folder
+type FolderCreateRequest struct {
+	Path        string  `json:"path"`
+	Description *string `json:"description,omitempty"`
+}
+
+// FolderResponse represents folder information from the API
+type FolderResponse struct {
+	Path        string    `json:"path"`
+	Description *string   `json:"description,omitempty"`
+	FileCount   int64     `json:"fileCount"`	
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+// FolderListResponse represents a list of folders from the API
+type FolderListResponse struct {
+	Folders []FolderResponse `json:"folders"`
+}
+
+// FolderStatisticsResponse represents folder statistics from the API
+type FolderStatisticsResponse struct {
+	Path          string            `json:"path"`
+	TotalFiles    int64             `json:"totalFiles"`
+	TotalSize     int64             `json:"totalSize"`
+	AverageFileSize int64           `json:"averageFileSize"`
+	StorageUsed   string            `json:"storageUsed"`
+	ByContentType map[string]int64  `json:"byContentType"`
+	CreatedAt     time.Time         `json:"createdAt"`
+}
+
