@@ -55,3 +55,9 @@ type SortResponse struct {
 	Property  string `json:"property,omitempty"`
 }
 
+// FileUpdateRequest represents a request to update file metadata
+type FileUpdateRequest struct {
+	Filename   *string `json:"filename,omitempty"`
+	FolderPath *string `json:"folderPath,omitempty"`
+}
+

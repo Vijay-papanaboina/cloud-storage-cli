@@ -37,7 +37,9 @@ var fileCmd = &cobra.Command{
 Available commands:
   upload   - Upload a file to cloud storage
   list     - List files with pagination and filtering
-  download - Download a file from cloud storage`,
+  download - Download a file from cloud storage
+  update   - Update file metadata (filename, folder path)
+  delete   - Delete a file from cloud storage`,
 }
 
 // fileUploadCmd represents the file upload command
@@ -310,6 +312,124 @@ Examples:
 	},
 }
 
+// fileUpdateCmd represents the file update command
+var fileUpdateCmd = &cobra.Command{
+	Use:   "update <file-id>",
+	Short: "Update file metadata",
+	Long: `Update file metadata (filename and/or folder path).
+
+At least one of --filename or --folder-path must be provided.
+
+Examples:
+  cloud-storage-api-cli file update 550e8400-e29b-41d4-a716-446655440000 --filename newname.pdf
+  cloud-storage-api-cli file update 550e8400-e29b-41d4-a716-446655440000 --folder-path /documents
+  cloud-storage-api-cli file update 550e8400-e29b-41d4-a716-446655440000 --filename newname.pdf --folder-path /documents`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fileID := args[0]
+		filename, _ := cmd.Flags().GetString("filename")
+		folderPath, _ := cmd.Flags().GetString("folder-path")
+
+		// Validate that at least one field is provided
+		if filename == "" && folderPath == "" {
+			return fmt.Errorf("at least one of --filename or --folder-path must be provided")
+		}
+
+		// Basic UUID format validation
+		if len(fileID) < 8 {
+			return fmt.Errorf("invalid file ID format: %s", fileID)
+		}
+
+		// Build update request
+		updateReq := file.FileUpdateRequest{}
+		if filename != "" {
+			updateReq.Filename = &filename
+		}
+		if folderPath != "" {
+			updateReq.FolderPath = &folderPath
+		}
+
+		// Create API client
+		apiClient, err := client.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// Update file
+		path := fmt.Sprintf("/api/files/%s", fileID)
+		var fileResp file.FileResponse
+		if err := apiClient.Put(path, updateReq, &fileResp); err != nil {
+			return fmt.Errorf("update failed: %w", err)
+		}
+
+		// Display success message
+		fmt.Println("File updated successfully!")
+		fmt.Printf("File ID: %s\n", fileResp.ID)
+		fmt.Printf("Filename: %s\n", fileResp.Filename)
+		if fileResp.FolderPath != nil {
+			fmt.Printf("Folder Path: %s\n", *fileResp.FolderPath)
+		} else {
+			fmt.Println("Folder Path: (none)")
+		}
+		fmt.Printf("Updated At: %s\n", fileResp.UpdatedAt.Format(time.RFC3339))
+
+		return nil
+	},
+}
+
+// fileDeleteCmd represents the file delete command
+var fileDeleteCmd = &cobra.Command{
+	Use:   "delete <file-id>",
+	Short: "Delete a file from cloud storage",
+	Long: `Delete a file from cloud storage.
+
+This operation cannot be undone. You will be prompted for confirmation unless
+the --confirm flag is used.
+
+Examples:
+  cloud-storage-api-cli file delete 550e8400-e29b-41d4-a716-446655440000
+  cloud-storage-api-cli file delete 550e8400-e29b-41d4-a716-446655440000 --confirm`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fileID := args[0]
+		confirm, _ := cmd.Flags().GetBool("confirm")
+
+		// Basic UUID format validation
+		if len(fileID) < 8 {
+			return fmt.Errorf("invalid file ID format: %s", fileID)
+		}
+
+		// Prompt for confirmation if not already confirmed
+		if !confirm {
+			fmt.Printf("Are you sure you want to delete file %s? This cannot be undone. (y/N): ", fileID)
+			var response string
+			fmt.Scanln(&response)
+			response = strings.ToLower(strings.TrimSpace(response))
+			if response != "y" && response != "yes" {
+				fmt.Println("Deletion cancelled.")
+				return nil
+			}
+		}
+
+		// Create API client
+		apiClient, err := client.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// Delete file
+		path := fmt.Sprintf("/api/files/%s", fileID)
+		if err := apiClient.Delete(path); err != nil {
+			return fmt.Errorf("delete failed: %w", err)
+		}
+
+		// Display success message
+		fmt.Printf("File %s deleted successfully.\n", fileID)
+
+		return nil
+	},
+}
+
 func init() {
 	// Add file command to root
 	rootCmd.AddCommand(fileCmd)
@@ -323,6 +443,12 @@ func init() {
 	// Add download subcommand to file command
 	fileCmd.AddCommand(fileDownloadCmd)
 
+	// Add update subcommand to file command
+	fileCmd.AddCommand(fileUpdateCmd)
+
+	// Add delete subcommand to file command
+	fileCmd.AddCommand(fileDeleteCmd)
+
 	// Add flags to upload command
 	fileUploadCmd.Flags().String("folder-path", "", "Optional folder path (Unix-style, e.g., /photos/2024)")
 
@@ -335,5 +461,12 @@ func init() {
 
 	// Add flags to download command
 	fileDownloadCmd.Flags().StringP("output", "o", "", "Output file path or directory (default: current directory)")
+
+	// Add flags to update command
+	fileUpdateCmd.Flags().String("filename", "", "New filename")
+	fileUpdateCmd.Flags().String("folder-path", "", "New folder path (Unix-style, e.g., /photos/2024)")
+
+	// Add flags to delete command
+	fileDeleteCmd.Flags().BoolP("confirm", "y", false, "Skip confirmation prompt")
 }
 
