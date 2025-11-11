@@ -30,3 +30,28 @@ type FileResponse struct {
 	UpdatedAt           time.Time  `json:"updatedAt"`
 }
 
+// PageResponse represents a paginated response from the API
+type PageResponse struct {
+	Content          []FileResponse  `json:"content"`
+	Pageable         PageableResponse `json:"pageable"`
+	TotalElements    int64           `json:"totalElements"`
+	TotalPages       int             `json:"totalPages"`
+	First            bool            `json:"first"`
+	Last             bool            `json:"last"`
+	NumberOfElements int             `json:"numberOfElements"`
+}
+
+// PageableResponse represents pagination information
+type PageableResponse struct {
+	PageNumber int          `json:"pageNumber"`
+	PageSize   int          `json:"pageSize"`
+	Sort       *SortResponse `json:"sort,omitempty"`
+}
+
+// SortResponse represents sort information
+type SortResponse struct {
+	Sorted    bool   `json:"sorted"`
+	Direction string `json:"direction,omitempty"`
+	Property  string `json:"property,omitempty"`
+}
+

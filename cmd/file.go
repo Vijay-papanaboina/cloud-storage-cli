@@ -17,7 +17,10 @@ package cmd
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,7 +36,7 @@ var fileCmd = &cobra.Command{
 
 Available commands:
   upload   - Upload a file to cloud storage
-  list     - List files (to be implemented)
+  list     - List files with pagination and filtering
   download - Download a file (to be implemented)`,
 }
 
@@ -98,6 +101,74 @@ Examples:
 	},
 }
 
+// fileListCmd represents the file list command
+var fileListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List files in cloud storage",
+	Long: `List files in cloud storage with pagination, sorting, and filtering options.
+
+Examples:
+  cloud-storage-api-cli file list
+  cloud-storage-api-cli file list --page 0 --size 50
+  cloud-storage-api-cli file list --sort "filename,asc"
+  cloud-storage-api-cli file list --content-type "image/jpeg" --folder-path /photos
+  cloud-storage-api-cli file list --page 1 --size 20 --sort "createdAt,desc"`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Get flags
+		page, _ := cmd.Flags().GetInt("page")
+		size, _ := cmd.Flags().GetInt("size")
+		sort, _ := cmd.Flags().GetString("sort")
+		contentType, _ := cmd.Flags().GetString("content-type")
+		folderPath, _ := cmd.Flags().GetString("folder-path")
+
+		// Validate pagination parameters
+		if page < 0 {
+			return fmt.Errorf("page must be >= 0")
+		}
+		if size <= 0 || size > 100 {
+			return fmt.Errorf("size must be between 1 and 100")
+		}
+
+		// Build query parameters
+		params := url.Values{}
+		params.Set("page", strconv.Itoa(page))
+		params.Set("size", strconv.Itoa(size))
+		if sort != "" {
+			params.Set("sort", sort)
+		}
+		if contentType != "" {
+			params.Set("contentType", contentType)
+		}
+		if folderPath != "" {
+			params.Set("folderPath", folderPath)
+		}
+
+		// Build URL with query parameters
+		path := "/api/files"
+		if len(params) > 0 {
+			path += "?" + params.Encode()
+		}
+
+		// Create API client
+		apiClient, err := client.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// Fetch file list
+		var pageResp file.PageResponse
+		if err := apiClient.Get(path, &pageResp); err != nil {
+			return fmt.Errorf("failed to list files: %w", err)
+		}
+
+		// Display results
+		displayFileList(&pageResp)
+
+		return nil
+	},
+}
+
 // formatFileSize formats file size in bytes to human-readable format
 func formatFileSize(size int64) string {
 	const unit = 1024
@@ -112,6 +183,79 @@ func formatFileSize(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
+// displayFileList displays the file list in a formatted table
+func displayFileList(pageResp *file.PageResponse) {
+	if len(pageResp.Content) == 0 {
+		fmt.Println("No files found.")
+		return
+	}
+
+	// Print header
+	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n", 
+		pageResp.Pageable.PageNumber+1, 
+		pageResp.TotalPages, 
+		pageResp.TotalElements)
+
+	// Print table header
+	fmt.Printf("%-36s %-30s %-20s %-12s %-20s %-20s\n",
+		"ID", "Filename", "Content Type", "Size", "Folder", "Created At")
+	fmt.Println(strings.Repeat("-", 140))
+
+	// Print table rows
+	for _, f := range pageResp.Content {
+		// Truncate ID to 36 chars (UUID length)
+		id := f.ID
+		if len(id) > 36 {
+			id = id[:36]
+		}
+
+		// Truncate filename if too long
+		filename := f.Filename
+		if len(filename) > 30 {
+			filename = filename[:27] + "..."
+		}
+
+		// Truncate content type if too long
+		contentType := f.ContentType
+		if len(contentType) > 20 {
+			contentType = contentType[:17] + "..."
+		}
+
+		// Format folder path
+		folder := "-"
+		if f.FolderPath != nil && *f.FolderPath != "" {
+			folder = *f.FolderPath
+			if len(folder) > 20 {
+				folder = folder[:17] + "..."
+			}
+		}
+
+		// Format date
+		createdAt := f.CreatedAt.Format("2006-01-02 15:04:05")
+
+		fmt.Printf("%-36s %-30s %-20s %-12s %-20s %-20s\n",
+			id, filename, contentType, formatFileSize(f.FileSize), folder, createdAt)
+	}
+
+	// Print pagination info
+	fmt.Println(strings.Repeat("-", 140))
+	fmt.Printf("Showing %d of %d files", pageResp.NumberOfElements, pageResp.TotalElements)
+	if !pageResp.First || !pageResp.Last {
+		fmt.Print(" (")
+		if !pageResp.First {
+			fmt.Print("not first")
+		}
+		if !pageResp.First && !pageResp.Last {
+			fmt.Print(", ")
+		}
+		if !pageResp.Last {
+			fmt.Print("not last")
+		}
+		fmt.Print(")")
+	}
+	fmt.Println()
+}
+
 func init() {
 	// Add file command to root
 	rootCmd.AddCommand(fileCmd)
@@ -119,7 +263,17 @@ func init() {
 	// Add upload subcommand to file command
 	fileCmd.AddCommand(fileUploadCmd)
 
+	// Add list subcommand to file command
+	fileCmd.AddCommand(fileListCmd)
+
 	// Add flags to upload command
 	fileUploadCmd.Flags().String("folder-path", "", "Optional folder path (Unix-style, e.g., /photos/2024)")
+
+	// Add flags to list command
+	fileListCmd.Flags().Int("page", 0, "Page number (0-indexed, default: 0)")
+	fileListCmd.Flags().Int("size", 20, "Page size (default: 20, max: 100)")
+	fileListCmd.Flags().String("sort", "createdAt,desc", "Sort field and direction (e.g., createdAt,desc)")
+	fileListCmd.Flags().String("content-type", "", "Filter by content type (e.g., image/jpeg)")
+	fileListCmd.Flags().String("folder-path", "", "Filter by folder path (e.g., /photos/2024)")
 }
 
