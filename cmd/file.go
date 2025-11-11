@@ -37,7 +37,7 @@ var fileCmd = &cobra.Command{
 Available commands:
   upload   - Upload a file to cloud storage
   list     - List files with pagination and filtering
-  download - Download a file (to be implemented)`,
+  download - Download a file from cloud storage`,
 }
 
 // fileUploadCmd represents the file upload command
@@ -256,6 +256,60 @@ func displayFileList(pageResp *file.PageResponse) {
 	fmt.Println()
 }
 
+// fileDownloadCmd represents the file download command
+var fileDownloadCmd = &cobra.Command{
+	Use:   "download <file-id>",
+	Short: "Download a file from cloud storage",
+	Long: `Download a file from cloud storage to your local filesystem.
+
+The file will be saved to the specified output path, or to the current directory
+if no output path is provided. If the output path is a directory, the file will
+be saved with its original filename in that directory.
+
+Examples:
+  cloud-storage-api-cli file download 550e8400-e29b-41d4-a716-446655440000
+  cloud-storage-api-cli file download 550e8400-e29b-41d4-a716-446655440000 --output ./downloads/
+  cloud-storage-api-cli file download 550e8400-e29b-41d4-a716-446655440000 --output ./myfile.pdf`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fileID := args[0]
+		outputPath, _ := cmd.Flags().GetString("output")
+
+		// Basic UUID format validation (simplified)
+		if len(fileID) < 8 {
+			return fmt.Errorf("invalid file ID format: %s", fileID)
+		}
+
+		// Create API client
+		apiClient, err := client.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// Download file
+		path := fmt.Sprintf("/api/files/%s/download", fileID)
+		finalPath, err := apiClient.DownloadFile(path, outputPath)
+		if err != nil {
+			return fmt.Errorf("download failed: %w", err)
+		}
+
+		// Get file info for display
+		fileInfo, err := os.Stat(finalPath)
+		if err != nil {
+			// File was downloaded but we can't get info - still show success
+			fmt.Printf("File downloaded successfully to: %s\n", finalPath)
+			return nil
+		}
+
+		// Display success message
+		fmt.Println("File downloaded successfully!")
+		fmt.Printf("File path: %s\n", finalPath)
+		fmt.Printf("File size: %s\n", formatFileSize(fileInfo.Size()))
+
+		return nil
+	},
+}
+
 func init() {
 	// Add file command to root
 	rootCmd.AddCommand(fileCmd)
@@ -266,6 +320,9 @@ func init() {
 	// Add list subcommand to file command
 	fileCmd.AddCommand(fileListCmd)
 
+	// Add download subcommand to file command
+	fileCmd.AddCommand(fileDownloadCmd)
+
 	// Add flags to upload command
 	fileUploadCmd.Flags().String("folder-path", "", "Optional folder path (Unix-style, e.g., /photos/2024)")
 
@@ -275,5 +332,8 @@ func init() {
 	fileListCmd.Flags().String("sort", "createdAt,desc", "Sort field and direction (e.g., createdAt,desc)")
 	fileListCmd.Flags().String("content-type", "", "Filter by content type (e.g., image/jpeg)")
 	fileListCmd.Flags().String("folder-path", "", "Filter by folder path (e.g., /photos/2024)")
+
+	// Add flags to download command
+	fileDownloadCmd.Flags().StringP("output", "o", "", "Output file path or directory (default: current directory)")
 }
 
