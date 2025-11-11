@@ -61,3 +61,13 @@ type FileUpdateRequest struct {
 	FolderPath *string `json:"folderPath,omitempty"`
 }
 
+// FileStatisticsResponse represents file statistics from the API
+type FileStatisticsResponse struct {
+	TotalFiles      int64            `json:"totalFiles"`
+	TotalSize       int64            `json:"totalSize"`
+	AverageFileSize int64            `json:"averageFileSize"`
+	StorageUsed     string           `json:"storageUsed"`
+	ByContentType   map[string]int64 `json:"byContentType"`
+	ByFolder        map[string]int64 `json:"byFolder"`
+}
+

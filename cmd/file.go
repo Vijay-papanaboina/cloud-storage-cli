@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -40,7 +41,8 @@ Available commands:
   download - Download a file from cloud storage
   update   - Update file metadata (filename, folder path)
   delete   - Delete a file from cloud storage
-  search   - Search files by filename`,
+  search   - Search files by filename
+  info     - Display file storage information`,
 }
 
 // fileUploadCmd represents the file upload command
@@ -240,6 +242,91 @@ Examples:
 
 		return nil
 	},
+}
+
+// fileInfoCmd represents the file info command
+var fileInfoCmd = &cobra.Command{
+	Use:   "info",
+	Short: "Display file storage information",
+	Long: `Get statistics about your file storage including total files, storage used, files by content type, and files by folder.
+
+Examples:
+  cloud-storage-api-cli file info`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Create API client
+		apiClient, err := client.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// Fetch statistics
+		var statsResp file.FileStatisticsResponse
+		if err := apiClient.Get("/api/files/statistics", &statsResp); err != nil {
+			return fmt.Errorf("failed to get file statistics: %w", err)
+		}
+
+		// Display statistics
+		displayFileInfo(&statsResp)
+
+		return nil
+	},
+}
+
+// displayFileInfo displays file statistics in a formatted way
+func displayFileInfo(stats *file.FileStatisticsResponse) {
+	fmt.Println("\nFile Storage Information")
+	fmt.Println(strings.Repeat("=", 50))
+
+	// Summary section
+	fmt.Println("\nSummary:")
+	fmt.Printf("  Total Files:      %d\n", stats.TotalFiles)
+	fmt.Printf("  Storage Used:     %s\n", stats.StorageUsed)
+	fmt.Printf("  Average File Size: %s\n", formatFileSize(stats.AverageFileSize))
+
+	// By content type section
+	if len(stats.ByContentType) > 0 {
+		fmt.Println("\nBy Content Type:")
+		fmt.Println(strings.Repeat("-", 50))
+		fmt.Printf("%-30s %s\n", "Content Type", "Count")
+		fmt.Println(strings.Repeat("-", 50))
+
+		// Sort content types alphabetically
+		contentTypes := make([]string, 0, len(stats.ByContentType))
+		for ct := range stats.ByContentType {
+			contentTypes = append(contentTypes, ct)
+		}
+		sort.Strings(contentTypes)
+
+		for _, ct := range contentTypes {
+			fmt.Printf("%-30s %d\n", ct, stats.ByContentType[ct])
+		}
+	} else {
+		fmt.Println("\nBy Content Type: None")
+	}
+
+	// By folder section
+	if len(stats.ByFolder) > 0 {
+		fmt.Println("\nBy Folder:")
+		fmt.Println(strings.Repeat("-", 50))
+		fmt.Printf("%-30s %s\n", "Folder Path", "Count")
+		fmt.Println(strings.Repeat("-", 50))
+
+		// Sort folders alphabetically
+		folders := make([]string, 0, len(stats.ByFolder))
+		for folder := range stats.ByFolder {
+			folders = append(folders, folder)
+		}
+		sort.Strings(folders)
+
+		for _, folder := range folders {
+			fmt.Printf("%-30s %d\n", folder, stats.ByFolder[folder])
+		}
+	} else {
+		fmt.Println("\nBy Folder: None")
+	}
+
+	fmt.Println()
 }
 
 // formatFileSize formats file size in bytes to human-readable format
@@ -522,6 +609,9 @@ func init() {
 
 	// Add search subcommand to file command
 	fileCmd.AddCommand(fileSearchCmd)
+
+	// Add info subcommand to file command
+	fileCmd.AddCommand(fileInfoCmd)
 
 	// Add flags to upload command
 	fileUploadCmd.Flags().String("folder-path", "", "Optional folder path (Unix-style, e.g., /photos/2024)")
