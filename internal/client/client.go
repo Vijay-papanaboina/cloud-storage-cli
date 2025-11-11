@@ -20,8 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -255,5 +258,95 @@ func (c *Client) Delete(path string) error {
 func (c *Client) UpdateAuth(accessToken, apiKey string) {
 	c.AccessToken = accessToken
 	c.APIKey = apiKey
+}
+
+// UploadFile performs a multipart/form-data file upload request
+// path: API endpoint path (e.g., "/api/files/upload")
+// filePath: Local file path to upload
+// folderPath: Optional folder path (can be empty string)
+// result: Pointer to struct to unmarshal JSON response into
+func (c *Client) UploadFile(path string, filePath string, folderPath string, result interface{}) error {
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Create multipart form data
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	// Add file field
+	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+	if err != nil {
+		return fmt.Errorf("failed to create form file field: %w", err)
+	}
+
+	// Copy file content to form field
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return fmt.Errorf("failed to copy file content: %w", err)
+	}
+
+	// Add optional folderPath field
+	if folderPath != "" {
+		err = writer.WriteField("folderPath", folderPath)
+		if err != nil {
+			return fmt.Errorf("failed to write folderPath field: %w", err)
+		}
+	}
+
+	// Close the multipart writer to finalize the form
+	err = writer.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Build URL
+	fullURL, err := c.buildURL(path)
+	if err != nil {
+		return err
+	}
+
+	// Create request
+	req, err := http.NewRequest(http.MethodPost, fullURL, &body)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set Content-Type header with boundary
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+	req.ContentLength = int64(body.Len())
+
+	// Add authentication headers
+	c.setAuthHeaders(req)
+
+	// Perform request
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check for error status codes
+	if resp.StatusCode >= 400 {
+		return c.parseErrorResponse(resp)
+	}
+
+	// Parse response if result is provided
+	if result != nil {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+	}
+
+	return nil
 }
 
