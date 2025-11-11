@@ -22,14 +22,26 @@ type APIError struct {
 	StatusCode int    `json:"statusCode,omitempty"`
 	Message    string `json:"message,omitempty"`
 	Details    string `json:"details,omitempty"`
+	Method     string `json:"method,omitempty"` // HTTP method
+	URL        string `json:"url,omitempty"`    // Request URL
 }
 
 // Error implements the error interface
 func (e *APIError) Error() string {
-	if e.Details != "" {
-		return fmt.Sprintf("API error (%d): %s - %s", e.StatusCode, e.Message, e.Details)
+	baseMsg := fmt.Sprintf("API error (%d)", e.StatusCode)
+	if e.Method != "" && e.URL != "" {
+		baseMsg = fmt.Sprintf("API error (%d) [%s %s]", e.StatusCode, e.Method, e.URL)
 	}
-	return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.Message)
+	if e.Details != "" {
+		return fmt.Sprintf("%s: %s - %s", baseMsg, e.Message, e.Details)
+	}
+	if e.Message != "" {
+		if e.Message != "" {
+			return fmt.Sprintf("%s: %s - %s", baseMsg, e.Message, e.Details)
+		}
+		return fmt.Sprintf("%s: %s", baseMsg, e.Details)
+	}
+	return baseMsg
 }
 
 // NewAPIError creates a new APIError instance
@@ -48,4 +60,3 @@ func NewAPIErrorWithDetails(statusCode int, message, details string) *APIError {
 		Details:    details,
 	}
 }
-

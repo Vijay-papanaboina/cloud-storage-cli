@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/client"
+	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/util"
 )
 
 // ApiKeyRequest represents a request to generate an API key
@@ -178,9 +179,9 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		apiKeyID := args[0]
 
-		// Basic UUID format validation
-		if _, err := uuid.Parse(apiKeyID); err != nil {
-			return fmt.Errorf("invalid API key ID format (expected UUID): %s", apiKeyID)
+		// Validate UUID format
+		if err := util.ValidateUUID(apiKeyID); err != nil {
+			return fmt.Errorf("invalid API key ID: %w", err)
 		}
 		// Create API client
 		apiClient, err := client.NewClient()

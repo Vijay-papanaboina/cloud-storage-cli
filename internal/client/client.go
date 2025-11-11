@@ -107,16 +107,21 @@ func (c *Client) setAuthHeaders(req *http.Request) {
 }
 
 // parseErrorResponse parses an error response from the API
-func (c *Client) parseErrorResponse(resp *http.Response) *APIError {
+func (c *Client) parseErrorResponse(resp *http.Response, method, url string) *APIError {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return NewAPIError(resp.StatusCode, "Failed to read error response")
+		apiErr := NewAPIError(resp.StatusCode, "Failed to read error response")
+		apiErr.Method = method
+		apiErr.URL = url
+		return apiErr
 	}
 
 	// Try to parse as JSON error response
 	var apiErr APIError
 	if err := json.Unmarshal(body, &apiErr); err == nil {
 		apiErr.StatusCode = resp.StatusCode
+		apiErr.Method = method
+		apiErr.URL = url
 		return &apiErr
 	}
 
@@ -126,7 +131,10 @@ func (c *Client) parseErrorResponse(resp *http.Response) *APIError {
 		message = resp.Status
 	}
 
-	return NewAPIError(resp.StatusCode, message)
+	apiErr = *NewAPIError(resp.StatusCode, message)
+	apiErr.Method = method
+	apiErr.URL = url
+	return &apiErr
 }
 
 // doRequest performs an HTTP request with the given method, path, and body
@@ -160,13 +168,13 @@ func (c *Client) doRequest(method, path string, body interface{}) (*http.Respons
 	// Perform request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, fmt.Errorf("request failed [%s %s]: %w", method, fullURL, err)
 	}
 
 	// Check for error status codes
 	if resp.StatusCode >= 400 {
 		defer resp.Body.Close()
-		return nil, c.parseErrorResponse(resp)
+		return nil, c.parseErrorResponse(resp, method, fullURL)
 	}
 
 	return resp, nil
@@ -327,13 +335,13 @@ func (c *Client) UploadFile(path string, filePath string, folderPath string, res
 	// Perform request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return fmt.Errorf("request failed [POST %s]: %w", fullURL, err)
 	}
 	defer resp.Body.Close()
 
 	// Check for error status codes
 	if resp.StatusCode >= 400 {
-		return c.parseErrorResponse(resp)
+		return c.parseErrorResponse(resp, http.MethodPost, fullURL)
 	}
 
 	// Parse response if result is provided
@@ -381,15 +389,15 @@ func sanitizeFilename(filename string) string {
 	filename = strings.ReplaceAll(filename, "/", "_")
 	filename = strings.ReplaceAll(filename, "\\", "_")
 	filename = strings.ReplaceAll(filename, "..", "_")
-	
+
 	// Remove any remaining path components
 	filename = filepath.Base(filename)
-	
+
 	// If empty after sanitization, use a default
 	if filename == "" || filename == "." || filename == ".." {
 		return "download"
 	}
-	
+
 	return filename
 }
 
@@ -419,19 +427,19 @@ func (c *Client) DownloadFile(path string, outputPath string) (string, error) {
 	// Perform request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("request failed: %w", err)
+		return "", fmt.Errorf("request failed [GET %s]: %w", fullURL, err)
 	}
 	defer resp.Body.Close()
 
 	// Check for error status codes
 	if resp.StatusCode >= 400 {
-		return "", c.parseErrorResponse(resp)
+		return "", c.parseErrorResponse(resp, http.MethodGet, fullURL)
 	}
 
 	// Extract filename from Content-Disposition header
 	contentDisposition := resp.Header.Get("Content-Disposition")
 	filename := extractFilenameFromContentDisposition(contentDisposition)
-	
+
 	// Sanitize filename
 	if filename != "" {
 		filename = sanitizeFilename(filename)
@@ -486,4 +494,3 @@ func (c *Client) DownloadFile(path string, outputPath string) (string, error) {
 
 	return finalPath, nil
 }
-

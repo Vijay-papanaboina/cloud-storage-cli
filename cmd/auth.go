@@ -18,19 +18,22 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/auth"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/client"
+	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/util"
+	"golang.org/x/term"
 )
 
 // Request/Response types matching API DTOs
 
 // LoginRequest represents a login request
 type LoginRequest struct {
-	Username  string `json:"username"`
-	Password  string `json:"password"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
 	ClientType string `json:"clientType,omitempty"`
 }
 
@@ -48,11 +51,11 @@ type RefreshTokenRequest struct {
 
 // UserResponse represents user information
 type UserResponse struct {
-	ID         string    `json:"id"`
-	Username   string    `json:"username"`
-	Email      string    `json:"email"`
-	Active     bool      `json:"active"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID          string     `json:"id"`
+	Username    string     `json:"username"`
+	Email       string     `json:"email"`
+	Active      bool       `json:"active"`
+	CreatedAt   time.Time  `json:"createdAt"`
 	LastLoginAt *time.Time `json:"lastLoginAt,omitempty"`
 }
 
@@ -88,22 +91,47 @@ Available commands:
   me        - Show current authenticated user information`,
 }
 
+// readPassword securely reads a password from stdin without echoing
+func readPassword(prompt string) (string, error) {
+	fmt.Print(prompt)
+	passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
+	fmt.Println() // New line after password input
+	if err != nil {
+		return "", fmt.Errorf("failed to read password: %w", err)
+	}
+	return string(passwordBytes), nil
+}
+
 // authLoginCmd represents the auth login command
 var authLoginCmd = &cobra.Command{
-	Use:   "login <username> <password>",
+	Use:   "login <username>",
 	Short: "Login with username and password",
 	Long: `Login to the API and save authentication tokens.
 
+The password will be prompted securely (not visible as you type).
 The tokens will be saved to the configuration file for future use.
 Use clientType "CLI" for longer token expiry (30 days for access token).
 
 Examples:
-  cloud-storage-api-cli auth login myuser mypassword
-  cloud-storage-api-cli auth login admin secret123`,
-	Args: cobra.ExactArgs(2),
+  cloud-storage-api-cli auth login myuser
+  cloud-storage-api-cli auth login admin`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		username := args[0]
-		password := args[1]
+
+		// Validate username
+		if err := util.ValidateUsername(username); err != nil {
+			return err
+		}
+
+		// Prompt for password securely
+		password, err := readPassword("Password: ")
+		if err != nil {
+			return err
+		}
+		if password == "" {
+			return fmt.Errorf("password cannot be empty")
+		}
 
 		// Create API client
 		apiClient, err := client.NewClient()
@@ -142,19 +170,37 @@ Examples:
 
 // authRegisterCmd represents the auth register command
 var authRegisterCmd = &cobra.Command{
-	Use:   "register <username> <email> <password>",
+	Use:   "register <username> <email>",
 	Short: "Register a new user account",
 	Long: `Register a new user account with the API.
 
+The password will be prompted securely (not visible as you type).
 After registration, you can login using the auth login command.
 
 Examples:
-  cloud-storage-api-cli auth register myuser user@example.com mypassword123`,
-	Args: cobra.ExactArgs(3),
+  cloud-storage-api-cli auth register myuser user@example.com`,
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		username := args[0]
 		email := args[1]
-		password := args[2]
+
+		// Validate username
+		if err := util.ValidateUsername(username); err != nil {
+			return err
+		}
+		// Validate email
+		if err := util.ValidateEmail(email); err != nil {
+			return err
+		}
+
+		// Prompt for password securely
+		password, err := readPassword("Password: ")
+		if err != nil {
+			return err
+		}
+		if password == "" {
+			return fmt.Errorf("password cannot be empty")
+		}
 
 		// Create API client
 		apiClient, err := client.NewClient()
@@ -331,4 +377,3 @@ func init() {
 	authCmd.AddCommand(authRefreshCmd)
 	authCmd.AddCommand(authMeCmd)
 }
-

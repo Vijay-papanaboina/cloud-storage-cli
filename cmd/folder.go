@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/client"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/file"
+	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/util"
 )
 
 // folderCmd represents the folder command
@@ -57,9 +58,9 @@ Examples:
 		path := args[0]
 		description, _ := cmd.Flags().GetString("description")
 
-		// Validate path starts with /
-		if !strings.HasPrefix(path, "/") {
-			return fmt.Errorf("folder path must start with '/'")
+		// Validate path
+		if err := util.ValidatePath(path); err != nil {
+			return err
 		}
 
 		// Create API client
@@ -155,9 +156,9 @@ Examples:
 		path := args[0]
 		force, _ := cmd.Flags().GetBool("force")
 
-		// Validate path starts with /
-		if !strings.HasPrefix(path, "/") {
-			return fmt.Errorf("folder path must start with '/'")
+		// Validate path
+		if err := util.ValidatePath(path); err != nil {
+			return err
 		}
 
 		// Prompt for confirmation if not forced
@@ -209,9 +210,9 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path := args[0]
 
-		// Validate path starts with /
-		if !strings.HasPrefix(path, "/") {
-			return fmt.Errorf("folder path must start with '/'")
+		// Validate path
+		if err := util.ValidatePath(path); err != nil {
+			return err
 		}
 
 		// URL encode the path for query parameter
@@ -291,7 +292,7 @@ func displayFolderInfo(folderInfo *file.FolderStatisticsResponse) {
 	fmt.Printf("  Path:             %s\n", folderInfo.Path)
 	fmt.Printf("  Total Files:      %d\n", folderInfo.TotalFiles)
 	fmt.Printf("  Storage Used:     %s\n", folderInfo.StorageUsed)
-	fmt.Printf("  Average File Size: %s\n", formatFileSize(folderInfo.AverageFileSize))
+	fmt.Printf("  Average File Size: %s\n", util.FormatFileSize(folderInfo.AverageFileSize))
 	fmt.Printf("  Created At:       %s\n", folderInfo.CreatedAt.Format(time.RFC3339))
 
 	// By content type section
@@ -343,4 +344,3 @@ func init() {
 	// Add flags to delete command
 	folderDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 }
-

@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/client"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/file"
+	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/util"
 )
 
 // fileCmd represents the file command
@@ -63,6 +64,13 @@ Examples:
 		filePath := args[0]
 		folderPath, _ := cmd.Flags().GetString("folder-path")
 
+		// Validate folder path if provided
+		if folderPath != "" {
+			if err := util.ValidatePath(folderPath); err != nil {
+				return fmt.Errorf("invalid folder path: %w", err)
+			}
+		}
+
 		// Validate file exists and is readable
 		fileInfo, err := os.Stat(filePath)
 		if err != nil {
@@ -94,7 +102,7 @@ Examples:
 		fmt.Printf("File ID: %s\n", fileResp.ID)
 		fmt.Printf("Filename: %s\n", fileResp.Filename)
 		fmt.Printf("Content Type: %s\n", fileResp.ContentType)
-		fmt.Printf("File Size: %s\n", formatFileSize(fileResp.FileSize))
+		fmt.Printf("File Size: %s\n", util.FormatFileSize(fileResp.FileSize))
 		if fileResp.FolderPath != nil {
 			fmt.Printf("Folder Path: %s\n", *fileResp.FolderPath)
 		}
@@ -128,11 +136,17 @@ Examples:
 		folderPath, _ := cmd.Flags().GetString("folder-path")
 
 		// Validate pagination parameters
-		if page < 0 {
-			return fmt.Errorf("page must be >= 0")
+		if err := util.ValidatePageNumber(page); err != nil {
+			return err
 		}
-		if size <= 0 || size > 100 {
-			return fmt.Errorf("size must be between 1 and 100")
+		if err := util.ValidatePageSize(size); err != nil {
+			return err
+		}
+		// Validate folder path if provided
+		if folderPath != "" {
+			if err := util.ValidatePath(folderPath); err != nil {
+				return fmt.Errorf("invalid folder path: %w", err)
+			}
 		}
 
 		// Build query parameters
@@ -190,7 +204,7 @@ Examples:
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		query := args[0]
-		
+
 		// Validate query is not empty
 		if strings.TrimSpace(query) == "" {
 			return fmt.Errorf("search query cannot be empty")
@@ -203,11 +217,17 @@ Examples:
 		folderPath, _ := cmd.Flags().GetString("folder-path")
 
 		// Validate pagination parameters
-		if page < 0 {
-			return fmt.Errorf("page must be >= 0")
+		if err := util.ValidatePageNumber(page); err != nil {
+			return err
 		}
-		if size <= 0 || size > 100 {
-			return fmt.Errorf("size must be between 1 and 100")
+		if err := util.ValidatePageSize(size); err != nil {
+			return err
+		}
+		// Validate folder path if provided
+		if folderPath != "" {
+			if err := util.ValidatePath(folderPath); err != nil {
+				return fmt.Errorf("invalid folder path: %w", err)
+			}
 		}
 
 		// Build query parameters
@@ -282,7 +302,7 @@ func displayFileInfo(fileInfo *file.FileStatisticsResponse) {
 	fmt.Println("\nSummary:")
 	fmt.Printf("  Total Files:      %d\n", fileInfo.TotalFiles)
 	fmt.Printf("  Storage Used:     %s\n", fileInfo.StorageUsed)
-	fmt.Printf("  Average File Size: %s\n", formatFileSize(fileInfo.AverageFileSize))
+	fmt.Printf("  Average File Size: %s\n", util.FormatFileSize(fileInfo.AverageFileSize))
 
 	// By content type section
 	if len(fileInfo.ByContentType) > 0 {
@@ -329,20 +349,6 @@ func displayFileInfo(fileInfo *file.FileStatisticsResponse) {
 	fmt.Println()
 }
 
-// formatFileSize formats file size in bytes to human-readable format
-func formatFileSize(size int64) string {
-	const unit = 1024
-	if size < unit {
-		return fmt.Sprintf("%d B", size)
-	}
-	div, exp := int64(unit), 0
-	for n := size / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
-}
-
 // displayFileList displays the file list in a formatted table
 func displayFileList(pageResp *file.PageResponse) {
 	if len(pageResp.Content) == 0 {
@@ -351,9 +357,9 @@ func displayFileList(pageResp *file.PageResponse) {
 	}
 
 	// Print header
-	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n", 
-		pageResp.Pageable.PageNumber+1, 
-		pageResp.TotalPages, 
+	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n",
+		pageResp.Pageable.PageNumber+1,
+		pageResp.TotalPages,
 		pageResp.TotalElements)
 
 	// Print table header
@@ -394,7 +400,7 @@ func displayFileList(pageResp *file.PageResponse) {
 		createdAt := f.CreatedAt.Format("2006-01-02 15:04:05")
 
 		fmt.Printf("%-36s %-30s %-20s %-12s %-20s %-20s\n",
-			id, filename, contentType, formatFileSize(f.FileSize), folder, createdAt)
+			id, filename, contentType, util.FormatFileSize(f.FileSize), folder, createdAt)
 	}
 
 	// Print pagination info
@@ -435,9 +441,9 @@ Examples:
 		fileID := args[0]
 		outputPath, _ := cmd.Flags().GetString("output")
 
-		// Basic UUID format validation (simplified)
-		if len(fileID) < 8 {
-			return fmt.Errorf("invalid file ID format: %s", fileID)
+		// Validate UUID format
+		if err := util.ValidateUUID(fileID); err != nil {
+			return err
 		}
 
 		// Create API client
@@ -464,7 +470,7 @@ Examples:
 		// Display success message
 		fmt.Println("File downloaded successfully!")
 		fmt.Printf("File path: %s\n", finalPath)
-		fmt.Printf("File size: %s\n", formatFileSize(fileInfo.Size()))
+		fmt.Printf("File size: %s\n", util.FormatFileSize(fileInfo.Size()))
 
 		return nil
 	},
@@ -493,9 +499,21 @@ Examples:
 			return fmt.Errorf("at least one of --filename or --folder-path must be provided")
 		}
 
-		// Basic UUID format validation
-		if len(fileID) < 8 {
-			return fmt.Errorf("invalid file ID format: %s", fileID)
+		// Validate UUID format
+		if err := util.ValidateUUID(fileID); err != nil {
+			return err
+		}
+		// Validate filename if provided
+		if filename != "" {
+			if err := util.ValidateFilename(filename); err != nil {
+				return fmt.Errorf("invalid filename: %w", err)
+			}
+		}
+		// Validate folder path if provided
+		if folderPath != "" {
+			if err := util.ValidatePath(folderPath); err != nil {
+				return fmt.Errorf("invalid folder path: %w", err)
+			}
 		}
 
 		// Build update request
@@ -552,9 +570,9 @@ Examples:
 		fileID := args[0]
 		confirm, _ := cmd.Flags().GetBool("confirm")
 
-		// Basic UUID format validation
-		if len(fileID) < 8 {
-			return fmt.Errorf("invalid file ID format: %s", fileID)
+		// Validate UUID format
+		if err := util.ValidateUUID(fileID); err != nil {
+			return err
 		}
 
 		// Prompt for confirmation if not already confirmed
@@ -639,4 +657,3 @@ func init() {
 	fileSearchCmd.Flags().String("content-type", "", "Filter by content type (e.g., image/jpeg)")
 	fileSearchCmd.Flags().String("folder-path", "", "Filter by folder path (e.g., /photos/2024)")
 }
-

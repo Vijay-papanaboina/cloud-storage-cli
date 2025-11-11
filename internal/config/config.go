@@ -38,9 +38,9 @@ var (
 
 const (
 	configDirName  = ".cloud-storage-cli"
-	configFileName  = "config.yaml"
-	defaultAPIURL   = "http://localhost:8000"
-	envVarPrefix    = "CLOUD_STORAGE"
+	configFileName = "config.yaml"
+	defaultAPIURL  = "http://localhost:8000"
+	envVarPrefix   = "CLOUD_STORAGE"
 )
 
 // InitConfig initializes Viper with defaults and environment variable support
@@ -134,6 +134,11 @@ func SaveConfig(cfg *Config) error {
 	// Write config file
 	if err := viperInstance.WriteConfigAs(configPath); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	// Set secure file permissions (0600: owner read/write only)
+	if err := os.Chmod(configPath, 0600); err != nil {
+		return fmt.Errorf("failed to set config file permissions: %w", err)
 	}
 
 	return nil
@@ -230,4 +235,3 @@ func MaskValue(value string) string {
 	}
 	return value[:4] + "..." + value[len(value)-4:]
 }
-
