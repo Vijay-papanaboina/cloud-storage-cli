@@ -16,9 +16,11 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config"
 )
 
 var (
@@ -59,6 +61,19 @@ For more information, use 'cloud-storage-api-cli <command> --help'`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	// Initialize configuration
+	if err := config.InitConfig(); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize config: %v\n", err)
+	}
+
+	// Load config and use values as defaults if flags are not set
+	if cfg, err := config.LoadConfig(); err == nil {
+		// Only use config value if flag was not explicitly set
+		if apiURL == "http://localhost:8000" && cfg.APIURL != "" {
+			apiURL = cfg.APIURL
+		}
+	}
+
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
