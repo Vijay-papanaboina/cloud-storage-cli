@@ -145,16 +145,31 @@ var folderDeleteCmd = &cobra.Command{
 	Long: `Delete a folder from cloud storage.
 
 The folder must be empty (no files) to be deleted. This operation cannot be undone.
+You will be prompted for confirmation unless the --force flag is used.
 
 Examples:
-  cloud-storage-api-cli folder delete /photos/2024`,
+  cloud-storage-api-cli folder delete /photos/2024
+  cloud-storage-api-cli folder delete /photos/2024 --force`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path := args[0]
+		force, _ := cmd.Flags().GetBool("force")
 
 		// Validate path starts with /
 		if !strings.HasPrefix(path, "/") {
 			return fmt.Errorf("folder path must start with '/'")
+		}
+
+		// Prompt for confirmation if not forced
+		if !force {
+			fmt.Printf("Are you sure you want to delete folder '%s'? This cannot be undone. (y/N): ", path)
+			var response string
+			fmt.Scanln(&response)
+			response = strings.ToLower(strings.TrimSpace(response))
+			if response != "y" && response != "yes" {
+				fmt.Println("Delete cancelled.")
+				return nil
+			}
 		}
 
 		// URL encode the path for query parameter
@@ -324,5 +339,8 @@ func init() {
 
 	// Add flags to list command
 	folderListCmd.Flags().String("parent-path", "", "Filter by parent path (e.g., /photos)")
+
+	// Add flags to delete command
+	folderDeleteCmd.Flags().BoolP("force", "f", false, "Skip confirmation prompt")
 }
 
