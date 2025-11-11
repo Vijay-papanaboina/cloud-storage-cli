@@ -39,7 +39,8 @@ Available commands:
   list     - List files with pagination and filtering
   download - Download a file from cloud storage
   update   - Update file metadata (filename, folder path)
-  delete   - Delete a file from cloud storage`,
+  delete   - Delete a file from cloud storage
+  search   - Search files by filename`,
 }
 
 // fileUploadCmd represents the file upload command
@@ -162,6 +163,76 @@ Examples:
 		var pageResp file.PageResponse
 		if err := apiClient.Get(path, &pageResp); err != nil {
 			return fmt.Errorf("failed to list files: %w", err)
+		}
+
+		// Display results
+		displayFileList(&pageResp)
+
+		return nil
+	},
+}
+
+// fileSearchCmd represents the file search command
+var fileSearchCmd = &cobra.Command{
+	Use:   "search <query>",
+	Short: "Search files by filename",
+	Long: `Search files by filename with pagination and optional filtering options.
+
+The search query will match files whose filename contains the query string.
+
+Examples:
+  cloud-storage-api-cli file search document
+  cloud-storage-api-cli file search photo --page 0 --size 50
+  cloud-storage-api-cli file search report --content-type "application/pdf" --folder-path /documents
+  cloud-storage-api-cli file search image --page 1 --size 20`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		query := args[0]
+		
+		// Validate query is not empty
+		if strings.TrimSpace(query) == "" {
+			return fmt.Errorf("search query cannot be empty")
+		}
+
+		// Get flags
+		page, _ := cmd.Flags().GetInt("page")
+		size, _ := cmd.Flags().GetInt("size")
+		contentType, _ := cmd.Flags().GetString("content-type")
+		folderPath, _ := cmd.Flags().GetString("folder-path")
+
+		// Validate pagination parameters
+		if page < 0 {
+			return fmt.Errorf("page must be >= 0")
+		}
+		if size <= 0 || size > 100 {
+			return fmt.Errorf("size must be between 1 and 100")
+		}
+
+		// Build query parameters
+		params := url.Values{}
+		params.Set("q", query)
+		params.Set("page", strconv.Itoa(page))
+		params.Set("size", strconv.Itoa(size))
+		if contentType != "" {
+			params.Set("contentType", contentType)
+		}
+		if folderPath != "" {
+			params.Set("folderPath", folderPath)
+		}
+
+		// Build URL with query parameters
+		path := "/api/files/search?" + params.Encode()
+
+		// Create API client
+		apiClient, err := client.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// Fetch search results
+		var pageResp file.PageResponse
+		if err := apiClient.Get(path, &pageResp); err != nil {
+			return fmt.Errorf("search failed: %w", err)
 		}
 
 		// Display results
@@ -449,6 +520,9 @@ func init() {
 	// Add delete subcommand to file command
 	fileCmd.AddCommand(fileDeleteCmd)
 
+	// Add search subcommand to file command
+	fileCmd.AddCommand(fileSearchCmd)
+
 	// Add flags to upload command
 	fileUploadCmd.Flags().String("folder-path", "", "Optional folder path (Unix-style, e.g., /photos/2024)")
 
@@ -468,5 +542,11 @@ func init() {
 
 	// Add flags to delete command
 	fileDeleteCmd.Flags().BoolP("confirm", "y", false, "Skip confirmation prompt")
+
+	// Add flags to search command
+	fileSearchCmd.Flags().Int("page", 0, "Page number (0-indexed, default: 0)")
+	fileSearchCmd.Flags().Int("size", 20, "Page size (default: 20, max: 100)")
+	fileSearchCmd.Flags().String("content-type", "", "Filter by content type (e.g., image/jpeg)")
+	fileSearchCmd.Flags().String("folder-path", "", "Filter by folder path (e.g., /photos/2024)")
 }
 
