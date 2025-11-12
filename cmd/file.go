@@ -223,7 +223,7 @@ Examples:
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		query := args[0]
-
+		
 		// Validate query is not empty
 		if strings.TrimSpace(query) == "" {
 			return fmt.Errorf("search query cannot be empty")
@@ -386,9 +386,9 @@ func displayFileList(pageResp *file.PageResponse) {
 	}
 
 	// Print header
-	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n",
-		pageResp.Pageable.PageNumber+1,
-		pageResp.TotalPages,
+	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n", 
+		pageResp.Pageable.PageNumber+1, 
+		pageResp.TotalPages, 
 		pageResp.TotalElements)
 
 	// Print table header

@@ -410,15 +410,15 @@ func sanitizeFilename(filename string) string {
 	filename = strings.ReplaceAll(filename, "/", "_")
 	filename = strings.ReplaceAll(filename, "\\", "_")
 	filename = strings.ReplaceAll(filename, "..", "_")
-
+	
 	// Remove any remaining path components
 	filename = filepath.Base(filename)
-
+	
 	// If empty after sanitization, use a default
 	if filename == "" || filename == "." || filename == ".." {
 		return "download"
 	}
-
+	
 	return filename
 }
 
