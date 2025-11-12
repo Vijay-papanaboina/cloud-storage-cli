@@ -83,6 +83,11 @@ Examples:
 			return fmt.Errorf("failed to create folder: %w", err)
 		}
 
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(folderResp)
+		}
+
 		// Display success message
 		fmt.Println("Folder created successfully!")
 		fmt.Printf("Path: %s\n", folderResp.Path)
@@ -130,6 +135,11 @@ Examples:
 		var folders []file.FolderResponse
 		if err := apiClient.Get(path, &folders); err != nil {
 			return fmt.Errorf("failed to list folders: %w", err)
+		}
+
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(folders)
 		}
 
 		// Display results
@@ -230,6 +240,11 @@ Examples:
 		var folderInfo file.FolderStatisticsResponse
 		if err := apiClient.Get(apiPath, &folderInfo); err != nil {
 			return fmt.Errorf("failed to get folder information: %w", err)
+		}
+
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(folderInfo)
 		}
 
 		// Display folder information

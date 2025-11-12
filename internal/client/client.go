@@ -29,6 +29,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/schollz/progressbar/v3"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config"
 )
 
@@ -282,6 +283,13 @@ func (c *Client) UploadFile(path string, filePath string, folderPath string, res
 	}
 	defer file.Close()
 
+	// Get file size for progress bar
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get file info: %w", err)
+	}
+	fileSize := fileInfo.Size()
+
 	// Create multipart form data
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -292,11 +300,16 @@ func (c *Client) UploadFile(path string, filePath string, folderPath string, res
 		return fmt.Errorf("failed to create form file field: %w", err)
 	}
 
-	// Copy file content to form field
-	_, err = io.Copy(part, file)
+	// Create progress bar for upload
+	bar := progressbar.DefaultBytes(fileSize, "Uploading")
+	
+	// Copy file content to form field with progress tracking
+	_, err = io.Copy(io.MultiWriter(part, bar), file)
 	if err != nil {
+		bar.Close()
 		return fmt.Errorf("failed to copy file content: %w", err)
 	}
+	bar.Close()
 
 	// Add optional folderPath field
 	if folderPath != "" {
@@ -436,10 +449,13 @@ func (c *Client) DownloadFile(path string, outputPath string) (string, error) {
 		return "", c.parseErrorResponse(resp, http.MethodGet, fullURL)
 	}
 
+	// Get content length for progress bar
+	contentLength := resp.ContentLength
+
 	// Extract filename from Content-Disposition header
 	contentDisposition := resp.Header.Get("Content-Disposition")
 	filename := extractFilenameFromContentDisposition(contentDisposition)
-
+	
 	// Sanitize filename
 	if filename != "" {
 		filename = sanitizeFilename(filename)
@@ -484,8 +500,19 @@ func (c *Client) DownloadFile(path string, outputPath string) (string, error) {
 	}
 	defer outFile.Close()
 
-	// Stream response body to file
-	_, err = io.Copy(outFile, resp.Body)
+	// Create progress bar for download (only if content length is known)
+	var reader io.Reader = resp.Body
+	var bar *progressbar.ProgressBar
+	if contentLength > 0 {
+		bar = progressbar.DefaultBytes(contentLength, "Downloading")
+		reader = io.TeeReader(resp.Body, bar)
+	}
+
+	// Stream response body to file with progress tracking
+	_, err = io.Copy(outFile, reader)
+	if bar != nil {
+		bar.Close()
+	}
 	if err != nil {
 		// Clean up file on error
 		os.Remove(finalPath)

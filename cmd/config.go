@@ -20,6 +20,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config"
+	"github.com/vijay-papanaboina/cloud-storage-api-cli/internal/util"
 )
 
 // configCmd represents the config command
@@ -56,6 +57,26 @@ var configShowCmd = &cobra.Command{
 		cfg, err := config.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		// Check if JSON output is requested
+		if jsonOutput {
+			// For JSON output, create a struct with masked values
+			type ConfigOutput struct {
+				ConfigFile   string `json:"configFile"`
+				APIURL       string `json:"apiUrl"`
+				AccessToken  string `json:"accessToken"`
+				RefreshToken string `json:"refreshToken"`
+				APIKey       string `json:"apiKey"`
+			}
+			output := ConfigOutput{
+				ConfigFile:   config.GetConfigPath(),
+				APIURL:       cfg.APIURL,
+				AccessToken:  config.MaskValue(cfg.AccessToken),
+				RefreshToken: config.MaskValue(cfg.RefreshToken),
+				APIKey:       config.MaskValue(cfg.APIKey),
+			}
+			return util.OutputJSON(output)
 		}
 
 		fmt.Println("Configuration:")

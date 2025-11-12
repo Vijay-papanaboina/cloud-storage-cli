@@ -24,9 +24,10 @@ import (
 )
 
 var (
-	apiURL  string
-	cfgFile string
-	verbose bool
+	apiURL     string
+	cfgFile    string
+	verbose    bool
+	jsonOutput bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -37,14 +38,14 @@ var rootCmd = &cobra.Command{
 
 It provides commands for:
   - Authentication (login, register, logout)
-  - File operations (upload, download, list, search, transform)
+  - File operations (upload, download, list, search, update, delete, info)
   - Folder management (create, list, delete)
   - API key management
   - Batch job status
 
 Examples:
   # Login to the API
-  cloud-storage-api-cli auth login username password
+  cloud-storage-api-cli auth login username
 
   # Upload a file
   cloud-storage-api-cli file upload ./document.pdf --folder-path /documents
@@ -85,6 +86,5 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "http://localhost:8000", "API base URL")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cloud-storage-cli/config.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "output in JSON format")
 }
-
-

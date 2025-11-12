@@ -97,6 +97,11 @@ Examples:
 			return fmt.Errorf("upload failed: %w", err)
 		}
 
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(fileResp)
+		}
+
 		// Display success message
 		fmt.Println("File uploaded successfully!")
 		fmt.Printf("File ID: %s\n", fileResp.ID)
@@ -181,6 +186,11 @@ Examples:
 			return fmt.Errorf("failed to list files: %w", err)
 		}
 
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(pageResp)
+		}
+
 		// Display results
 		displayFileList(&pageResp)
 
@@ -257,6 +267,11 @@ Examples:
 			return fmt.Errorf("search failed: %w", err)
 		}
 
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(pageResp)
+		}
+
 		// Display results
 		displayFileList(&pageResp)
 
@@ -284,6 +299,11 @@ Examples:
 		var fileInfo file.FileStatisticsResponse
 		if err := apiClient.Get("/api/files/statistics", &fileInfo); err != nil {
 			return fmt.Errorf("failed to get file information: %w", err)
+		}
+
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(fileInfo)
 		}
 
 		// Display file information
@@ -536,6 +556,11 @@ Examples:
 		var fileResp file.FileResponse
 		if err := apiClient.Put(path, updateReq, &fileResp); err != nil {
 			return fmt.Errorf("update failed: %w", err)
+		}
+
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(fileResp)
 		}
 
 		// Display success message

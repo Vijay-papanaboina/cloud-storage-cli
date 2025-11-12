@@ -109,6 +109,11 @@ Examples:
 			return fmt.Errorf("failed to generate API key: %w", err)
 		}
 
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(apiKeyResp)
+		}
+
 		// Display success message with security warning
 		fmt.Println("API key generated successfully!")
 		fmt.Print("\n⚠️  SECURITY WARNING: This API key will only be displayed once.\n")
@@ -158,6 +163,11 @@ Examples:
 			return fmt.Errorf("failed to list API keys: %w", err)
 		}
 
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(apiKeys)
+		}
+
 		// Display results
 		displayApiKeyList(apiKeys)
 
@@ -194,6 +204,11 @@ Examples:
 		var apiKeyResp ApiKeyResponse
 		if err := apiClient.Get(path, &apiKeyResp); err != nil {
 			return fmt.Errorf("failed to get API key: %w", err)
+		}
+
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(apiKeyResp)
 		}
 
 		// Display API key details

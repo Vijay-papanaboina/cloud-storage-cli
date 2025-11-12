@@ -353,6 +353,11 @@ Examples:
 			return fmt.Errorf("failed to get user information: %w", err)
 		}
 
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(userResp)
+		}
+
 		// Display user information
 		fmt.Println("Current User Information:")
 		fmt.Println("========================")

@@ -8,6 +8,7 @@ require github.com/spf13/cobra v1.10.1 // direct
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/viper v1.18.2
 	golang.org/x/term v0.37.0
 )
@@ -17,8 +18,10 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
