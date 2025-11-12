@@ -275,7 +275,7 @@ func (c *Client) UpdateAuth(accessToken, apiKey string) {
 // filePath: Local file path to upload
 // folderPath: Optional folder path (can be empty string)
 // result: Pointer to struct to unmarshal JSON response into
-func (c *Client) UploadFile(path string, filePath string, folderPath string, result interface{}) error {
+func (c *Client) UploadFile(path string, filePath string, folderPath string, filename string, result interface{}) error {
 	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -316,6 +316,14 @@ func (c *Client) UploadFile(path string, filePath string, folderPath string, res
 		err = writer.WriteField("folderPath", folderPath)
 		if err != nil {
 			return fmt.Errorf("failed to write folderPath field: %w", err)
+		}
+	}
+
+	// Add optional filename field
+	if filename != "" {
+		err = writer.WriteField("filename", filename)
+		if err != nil {
+			return fmt.Errorf("failed to write filename field: %w", err)
 		}
 	}
 

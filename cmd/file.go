@@ -50,24 +50,33 @@ Available commands:
 var fileUploadCmd = &cobra.Command{
 	Use:   "upload <filepath>",
 	Short: "Upload a file to cloud storage",
-	Long: `Upload a file to cloud storage with optional folder path.
+	Long: `Upload a file to cloud storage with optional folder path and custom filename.
 
 The file will be associated with your authenticated account.
 Use Unix-style paths (forward slashes) for folder paths, e.g., /photos/2024.
+If --filename is not provided, the original filename will be used.
 
 Examples:
   cloud-storage-api-cli file upload ./document.pdf
   cloud-storage-api-cli file upload ./photo.jpg --folder-path /photos/2024
-  cloud-storage-api-cli file upload ./report.pdf --folder-path /documents`,
+  cloud-storage-api-cli file upload ./report.pdf --folder-path /documents --filename custom-report.pdf`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filePath := args[0]
 		folderPath, _ := cmd.Flags().GetString("folder-path")
+		filename, _ := cmd.Flags().GetString("filename")
 
 		// Validate folder path if provided
 		if folderPath != "" {
 			if err := util.ValidatePath(folderPath); err != nil {
 				return fmt.Errorf("invalid folder path: %w", err)
+			}
+		}
+
+		// Validate filename if provided
+		if filename != "" {
+			if err := util.ValidateFilename(filename); err != nil {
+				return fmt.Errorf("invalid filename: %w", err)
 			}
 		}
 
@@ -93,7 +102,7 @@ Examples:
 
 		// Upload file
 		var fileResp file.FileResponse
-		if err := apiClient.UploadFile("/api/files/upload", filePath, folderPath, &fileResp); err != nil {
+		if err := apiClient.UploadFile("/api/files/upload", filePath, folderPath, filename, &fileResp); err != nil {
 			return fmt.Errorf("upload failed: %w", err)
 		}
 
@@ -658,6 +667,7 @@ func init() {
 
 	// Add flags to upload command
 	fileUploadCmd.Flags().String("folder-path", "", "Optional folder path (Unix-style, e.g., /photos/2024)")
+	fileUploadCmd.Flags().String("filename", "", "Custom filename (optional, defaults to original filename)")
 
 	// Add flags to list command
 	fileListCmd.Flags().Int("page", 0, "Page number (0-indexed, default: 0)")
