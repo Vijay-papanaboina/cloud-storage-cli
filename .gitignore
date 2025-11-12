@@ -114,3 +114,4 @@ debug
 .local/
 local/
 
+*.txt

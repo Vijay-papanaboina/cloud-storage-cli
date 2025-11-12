@@ -65,9 +65,10 @@ func ValidatePath(path string) error {
 	if strings.Contains(path, "\x00") {
 		return fmt.Errorf("path cannot contain null bytes")
 	}
-	// Check for control characters
+	// Check for control characters (including tab, newline, carriage return)
+	// Only allow printable characters (code >= 32)
 	for _, r := range path {
-		if r < 32 && r != '\t' && r != '\n' && r != '\r' {
+		if r < 32 {
 			return fmt.Errorf("path cannot contain control characters")
 		}
 	}
@@ -91,9 +92,10 @@ func ValidateFilename(filename string) error {
 	if strings.Contains(filename, "\x00") {
 		return fmt.Errorf("filename cannot contain null bytes")
 	}
-	// Check for control characters (allow tab, newline, carriage return)
+	// Check for control characters (including tab, newline, carriage return)
+	// Only allow printable characters (code >= 32)
 	for _, r := range filename {
-		if r < 32 && r != '\t' && r != '\n' && r != '\r' {
+		if r < 32 {
 			return fmt.Errorf("filename cannot contain control characters")
 		}
 	}
