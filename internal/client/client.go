@@ -98,7 +98,18 @@ func (c *Client) buildURL(path string) (string, error) {
 // Uses API key for authentication
 func (c *Client) setAuthHeaders(req *http.Request) {
 	if c.APIKey != "" {
-		req.Header.Set("X-API-Key", c.APIKey)
+		// Sanitize API key to ensure it's valid for HTTP headers
+		// Remove any control characters that might cause issues
+		apiKey := strings.TrimSpace(c.APIKey)
+		apiKey = strings.Map(func(r rune) rune {
+			if r >= 32 && r != 127 { // Keep printable ASCII except DEL
+				return r
+			}
+			return -1 // Remove control characters
+		}, apiKey)
+		if apiKey != "" {
+			req.Header.Set("X-API-Key", apiKey)
+		}
 	}
 }
 

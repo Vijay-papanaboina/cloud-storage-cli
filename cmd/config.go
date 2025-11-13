@@ -31,19 +31,18 @@ var configCmd = &cobra.Command{
 
 Configuration is stored in ~/.cloud-storage-cli/config.yaml
 
-You can view, get, or set configuration values:
-  - api-url: API base URL (default: http://localhost:8000)
-  - api-key: API key for authentication
+You can view or get configuration values. API keys can only be set via the
+'auth login' command, which validates the key before saving it.
+
+Note: API URL is configured via the CLOUD_STORAGE_API_URL environment variable
+or the --api-url flag. It cannot be set via config command.
 
 Examples:
   # Show all configuration values
   cloud-storage-api-cli config show
 
   # Get a specific configuration value
-  cloud-storage-api-cli config get api-url
-
-  # Set a configuration value
-  cloud-storage-api-cli config set api-url http://api.example.com`,
+  cloud-storage-api-cli config get api-key`,
 }
 
 // configShowCmd represents the config show command
@@ -90,7 +89,6 @@ var configGetCmd = &cobra.Command{
 	Long: `Get a specific configuration value by key.
 
 Supported keys:
-  - api-url
   - api-key
 
 Sensitive values are masked when displayed.`,
@@ -112,56 +110,12 @@ Sensitive values are masked when displayed.`,
 	},
 }
 
-// configSetCmd represents the config set command
-var configSetCmd = &cobra.Command{
-	Use:   "set <key> <value>",
-	Short: "Set a configuration value",
-	Long: `Set a configuration value and save it to the config file.
-
-Supported keys:
-  - api-url: API base URL
-  - api-key: API key for authentication
-
-Examples:
-  cloud-storage-api-cli config set api-url http://api.example.com
-  cloud-storage-api-cli config set api-key your-api-key-here`,
-	Args: cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		key := args[0]
-		value := args[1]
-
-		// Validate key
-		validKeys := []string{"api-url", "api_url", "api-key", "api_key"}
-		isValid := false
-		for _, vk := range validKeys {
-			if key == vk {
-				isValid = true
-				break
-			}
-		}
-		if !isValid {
-			return fmt.Errorf("invalid key: %s. Supported keys: api-url, api-key", key)
-		}
-
-		if err := config.SetValue(key, value); err != nil {
-			return fmt.Errorf("failed to set config value: %w", err)
-		}
-
-		// Display masked value for sensitive keys
-		displayValue := value
-		if config.IsSensitiveKey(key) {
-			displayValue = config.MaskValue(value)
-		}
-
-		fmt.Printf("Configuration updated: %s = %s\n", key, displayValue)
-		fmt.Printf("Config file: %s\n", config.GetConfigPath())
-		return nil
-	},
-}
+// configSetCmd is removed - API keys can only be set via 'auth login' command
+// which validates the key before saving it. This prevents saving invalid keys.
 
 func init() {
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configShowCmd)
 	configCmd.AddCommand(configGetCmd)
-	configCmd.AddCommand(configSetCmd)
+	// configSetCmd removed - API keys can only be set via 'auth login' command
 }

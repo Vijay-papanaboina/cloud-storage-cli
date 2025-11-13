@@ -67,13 +67,8 @@ func Execute() {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize config: %v\n", err)
 	}
 
-	// Load config and use values as defaults if flags are not set
-	if cfg, err := config.LoadConfig(); err == nil {
-		// Only use config value if flag was not explicitly set
-		if apiURL == "http://localhost:8000" && cfg.APIURL != "" {
-			apiURL = cfg.APIURL
-		}
-	}
+	// API URL is hardcoded at compile time - always use the build-time value
+	apiURL = config.GetAPIURL()
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -83,7 +78,6 @@ func Execute() {
 
 func init() {
 	// Persistent flags available to all subcommands
-	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "http://localhost:8000", "API base URL")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cloud-storage-cli/config.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "output in JSON format")

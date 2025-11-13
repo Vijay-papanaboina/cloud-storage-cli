@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"syscall"
 	"time"
 
@@ -87,12 +88,27 @@ Examples:
 		if err != nil {
 			return err
 		}
+		// Trim whitespace and remove all control characters from the API key
+		apiKey = strings.TrimSpace(apiKey)
+		// Remove any control characters (newlines, carriage returns, etc.)
+		apiKey = strings.Map(func(r rune) rune {
+			if r >= 32 && r != 127 { // Keep printable ASCII except DEL
+				return r
+			}
+			return -1 // Remove control characters
+		}, apiKey)
 		if apiKey == "" {
 			return fmt.Errorf("API key cannot be empty")
 		}
 
-		// Create API client with the provided API key
-		apiClient := client.NewClientWithConfig("", apiKey)
+		// Get API URL from config (LoadConfig ensures it's never empty)
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		// Create API client with the provided API key and base URL
+		apiClient := client.NewClientWithConfig(cfg.APIURL, apiKey)
 
 		// Verify API key by calling the verify endpoint
 		var userResp UserResponse

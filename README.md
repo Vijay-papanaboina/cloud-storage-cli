@@ -28,8 +28,41 @@ cd cloud-storage-cli
 
 2. Build the CLI:
 
+Create a `.env` file in the project root:
+
 ```bash
-go build -o cloud-storage-api-cli
+API_URL=http://localhost:8000
+```
+
+Then build:
+
+```bash
+make build
+```
+
+The Makefile automatically reads `API_URL` from your `.env` file and hardcodes it into the binary - just like Vite does!
+
+**Alternative: Direct build commands**
+
+If you prefer not to use Makefile, you can use the long `-ldflags` command:
+
+```bash
+go build -ldflags "-X github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config.BuildTimeAPIURL=http://api.example.com" -o cloud-storage-api-cli
+```
+
+**Examples with Makefile:**
+
+```bash
+# Build with .env file
+make build
+
+# Or override .env for one-time builds
+API_URL=https://api.production.com make build
+
+# Predefined targets
+make build-dev      # Uses http://localhost:8000
+make build-staging  # Uses https://api.staging.com
+make build-prod     # Uses https://api.production.com
 ```
 
 3. (Optional) Install globally:
@@ -45,14 +78,24 @@ sudo mv cloud-storage-api-cli /usr/local/bin/
 
 The CLI stores configuration in `~/.cloud-storage-cli/config.yaml`. You can manage configuration using the `config` command or environment variables.
 
+### API URL Configuration
+
+**Important**: The API URL is **hardcoded at compile time** using build flags. It cannot be changed at runtime via environment variables, config files, or command-line flags. Each environment (dev/staging/prod) should have its own compiled binary with the appropriate URL.
+
 ### Environment Variables
 
-- `CLOUD_STORAGE_API_URL`: API base URL (default: `http://localhost:8000`)
-- `CLOUD_STORAGE_API_KEY`: API key for authentication
+- `CLOUD_STORAGE_API_KEY`: API key for authentication (can be set at runtime)
+
+**Note**: `CLOUD_STORAGE_API_URL` is **ignored** - the URL is set at compile time only.
 
 ### Config File
 
 The config file is automatically created on first use. Sensitive values (API keys) are stored securely with file permissions 0600 (owner read/write only).
+
+The config file stores:
+
+- `api_key`: Your API key (set via `auth login` command)
+- `api_url`: Read-only, shows the compile-time URL (cannot be changed)
 
 ## Usage
 
@@ -169,33 +212,30 @@ cloud-storage-api-cli config show
 #### Get Configuration Value
 
 ```bash
-cloud-storage-api-cli config get api-url
+cloud-storage-api-cli config get api-url  # Shows compile-time URL (read-only)
 cloud-storage-api-cli config get api-key
 ```
 
-#### Set Configuration Value
-
-```bash
-cloud-storage-api-cli config set api-url http://api.example.com
-cloud-storage-api-cli config set api-key your-api-key-here
-```
+**Note**: The `api-url` value is read-only and shows the URL that was hardcoded at compile time. It cannot be changed via the config command.
 
 ## Command-Line Options
 
 ### Global Flags
 
-- `--api-url <url>`: Override API base URL (default: `http://localhost:8000`)
 - `--config <path>`: Specify config file path
 - `--verbose, -v`: Enable verbose output
+- `--json`: Output in JSON format
+
+**Note**: The `--api-url` flag has been removed. The API URL is hardcoded at compile time and cannot be changed at runtime.
 
 ### Examples
 
 ```bash
-# Use a different API endpoint
-cloud-storage-api-cli --api-url https://api.example.com file list
-
 # Enable verbose output
 cloud-storage-api-cli -v file upload document.pdf
+
+# Output in JSON format
+cloud-storage-api-cli --json file list
 ```
 
 ## Input Validation
@@ -291,7 +331,7 @@ cloud-storage-api-cli auth login
 
 If you're experiencing network errors:
 
-1. Verify API URL:
+1. Verify API URL (shows compile-time URL):
 
 ```bash
 cloud-storage-api-cli config get api-url
@@ -309,6 +349,8 @@ curl $(cloud-storage-api-cli config get api-url)/health
 cloud-storage-api-cli -v file list
 ```
 
+**Note**: If the API URL is incorrect, you need to rebuild the CLI with the correct URL using build flags (see Build from Source section).
+
 ### Configuration Issues
 
 If configuration isn't working:
@@ -325,13 +367,14 @@ cloud-storage-api-cli config show
 ls -l ~/.cloud-storage-cli/config.yaml
 ```
 
-3. Use environment variables as alternative:
+3. Use environment variable for API key:
 
 ```bash
-export CLOUD_STORAGE_API_URL=http://api.example.com
 export CLOUD_STORAGE_API_KEY=your-api-key-here
 cloud-storage-api-cli file list
 ```
+
+**Note**: The API URL cannot be changed via environment variables - it must be set at compile time.
 
 ## Development
 
@@ -356,14 +399,68 @@ cloud-storage-cli/
 
 ### Building
 
+**Recommended: Use `.env` file with Makefile**
+
+1. Create a `.env` file:
+
 ```bash
-# Build for current platform
+API_URL=http://localhost:8000
+```
+
+2. Build:
+
+```bash
+make build
+```
+
+**Alternative: Direct Go build commands**
+
+```bash
+# Build for current platform with default URL (localhost:8000)
 go build -o cloud-storage-api-cli
 
-# Build for specific platforms
-GOOS=linux GOARCH=amd64 go build -o cloud-storage-api-cli-linux
-GOOS=windows GOARCH=amd64 go build -o cloud-storage-api-cli.exe
-GOOS=darwin GOARCH=amd64 go build -o cloud-storage-api-cli-macos
+# Build with custom API URL
+go build -ldflags "-X github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config.BuildTimeAPIURL=https://api.example.com" -o cloud-storage-api-cli
+
+# Build for specific platforms (read API_URL from .env or use default)
+GOOS=linux GOARCH=amd64 make build
+GOOS=windows GOARCH=amd64 make build
+GOOS=darwin GOARCH=amd64 make build
+```
+
+### CI/CD Integration
+
+#### GitHub Actions Example
+
+```yaml
+- name: Build CLI
+  env:
+    API_URL: ${{ secrets.API_URL }}
+  run: make build
+```
+
+Or without Makefile:
+
+```yaml
+- name: Build CLI
+  run: |
+    go build -ldflags "-X github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config.BuildTimeAPIURL=${{ secrets.API_URL }}" -o cloud-storage-api-cli .
+```
+
+#### AWS CodeBuild Example
+
+```yaml
+build:
+  commands:
+    - make build
+```
+
+Or without Makefile:
+
+```yaml
+build:
+  commands:
+    - go build -ldflags "-X github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config.BuildTimeAPIURL=${API_URL}" -o cloud-storage-api-cli .
 ```
 
 ## License

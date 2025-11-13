@@ -114,10 +114,13 @@ func TestLoadConfig(t *testing.T) {
 		t.Fatalf("LoadConfig() error = %v", err)
 	}
 
-	if loaded.APIURL != cfg.APIURL {
-		t.Errorf("Expected APIURL %q, got %q", cfg.APIURL, loaded.APIURL)
+	// API URL is hardcoded at compile time, so it should return GetAPIURL()
+	expectedURL := GetAPIURL()
+	if loaded.APIURL != expectedURL {
+		t.Errorf("Expected APIURL %q (compile-time), got %q", expectedURL, loaded.APIURL)
 	}
 
+	// API key should be loaded from config
 	if loaded.APIKey != cfg.APIKey {
 		t.Errorf("Expected APIKey %q, got %q", cfg.APIKey, loaded.APIKey)
 	}
@@ -144,16 +147,16 @@ func TestLoadConfig_Defaults(t *testing.T) {
 		t.Fatalf("InitConfig() error = %v", err)
 	}
 
-	// Load config without saving (should use defaults)
+	// Load config without saving (should use compile-time URL)
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("LoadConfig() error = %v", err)
 	}
 
-	// Verify that APIURL has a value (either default or from env)
-	// The exact value might be affected by environment variables
-	if cfg.APIURL == "" {
-		t.Error("Expected APIURL to have a value, got empty string")
+	// API URL is hardcoded at compile time
+	expectedURL := GetAPIURL()
+	if cfg.APIURL != expectedURL {
+		t.Errorf("Expected APIURL %q (compile-time), got %q", expectedURL, cfg.APIURL)
 	}
 
 	// APIKey should be empty if no config file and no env var
@@ -169,8 +172,6 @@ func TestSetValue(t *testing.T) {
 		key   string
 		value string
 	}{
-		{"api-url", "http://new.example.com"},
-		{"api_url", "http://new2.example.com"},
 		{"api-key", "new-key"},
 		{"api_key", "new-key2"},
 	}
@@ -195,6 +196,23 @@ func TestSetValue(t *testing.T) {
 	}
 }
 
+func TestSetValue_APIURL_NotAllowed(t *testing.T) {
+	_, cleanup := setupTestConfig(t)
+	defer cleanup()
+
+	// API URL cannot be set via SetValue - it's compile-time only
+	tests := []string{"api-url", "api_url"}
+
+	for _, key := range tests {
+		t.Run(key, func(t *testing.T) {
+			err := SetValue(key, "http://new.example.com")
+			if err == nil {
+				t.Errorf("Expected error when setting %q, got nil", key)
+			}
+		})
+	}
+}
+
 func TestSetValue_InvalidKey(t *testing.T) {
 	_, cleanup := setupTestConfig(t)
 	defer cleanup()
@@ -209,20 +227,31 @@ func TestGetValue(t *testing.T) {
 	_, cleanup := setupTestConfig(t)
 	defer cleanup()
 
-	// Set a value first
-	err := SetValue("api-url", "http://test.example.com")
+	// Test getting API key (can be set)
+	err := SetValue("api-key", "test-api-key")
 	if err != nil {
 		t.Fatalf("SetValue() error = %v", err)
 	}
 
-	// Get value
-	value, err := GetValue("api-url")
+	// Get API key value
+	value, err := GetValue("api-key")
 	if err != nil {
 		t.Fatalf("GetValue() error = %v", err)
 	}
 
-	if value != "http://test.example.com" {
-		t.Errorf("Expected value %q, got %q", "http://test.example.com", value)
+	if value != "test-api-key" {
+		t.Errorf("Expected value %q, got %q", "test-api-key", value)
+	}
+
+	// Test getting API URL (compile-time, read-only)
+	urlValue, err := GetValue("api-url")
+	if err != nil {
+		t.Fatalf("GetValue() error = %v", err)
+	}
+
+	expectedURL := GetAPIURL()
+	if urlValue != expectedURL {
+		t.Errorf("Expected API URL %q (compile-time), got %q", expectedURL, urlValue)
 	}
 }
 
@@ -284,11 +313,11 @@ func TestConfig_EnvironmentVariables(t *testing.T) {
 	_, cleanup := setupTestConfig(t)
 	defer cleanup()
 
-	// Set environment variable
+	// Set environment variable (should be ignored - API URL is compile-time only)
 	os.Setenv("CLOUD_STORAGE_API_URL", "http://env.example.com")
 	defer os.Unsetenv("CLOUD_STORAGE_API_URL")
 
-	// Reset viper to pick up env var
+	// Reset viper
 	viperInstance = nil
 
 	cfg, err := LoadConfig()
@@ -296,8 +325,10 @@ func TestConfig_EnvironmentVariables(t *testing.T) {
 		t.Fatalf("LoadConfig() error = %v", err)
 	}
 
-	if cfg.APIURL != "http://env.example.com" {
-		t.Errorf("Expected APIURL from env var %q, got %q", "http://env.example.com", cfg.APIURL)
+	// API URL should be compile-time value, not from env var
+	expectedURL := GetAPIURL()
+	if cfg.APIURL != expectedURL {
+		t.Errorf("Expected APIURL %q (compile-time, env var ignored), got %q", expectedURL, cfg.APIURL)
 	}
 }
 

@@ -34,19 +34,33 @@ var (
 	configPath    string
 )
 
+var (
+	// BuildTimeAPIURL is set at compile time using -ldflags
+	// Example: go build -ldflags "-X github.com/vijay-papanaboina/cloud-storage-api-cli/internal/config.BuildTimeAPIURL=http://api.example.com"
+	BuildTimeAPIURL string
+)
+
 const (
 	configDirName  = ".cloud-storage-cli"
 	configFileName = "config.yaml"
-	defaultAPIURL  = "http://localhost:8000"
+	DefaultAPIURL  = "http://localhost:8080" // Fallback if BuildTimeAPIURL is not set at compile time
 	envVarPrefix   = "CLOUD_STORAGE"
 )
+
+// GetAPIURL returns the API URL - hardcoded at compile time, cannot be changed at runtime
+func GetAPIURL() string {
+	if BuildTimeAPIURL != "" {
+		return BuildTimeAPIURL
+	}
+	return DefaultAPIURL
+}
 
 // InitConfig initializes Viper with defaults and environment variable support
 func InitConfig() error {
 	viperInstance = viper.New()
 
-	// Set defaults
-	viperInstance.SetDefault("api_url", defaultAPIURL)
+	// Set defaults - API URL is hardcoded at compile time, not from config
+	viperInstance.SetDefault("api_url", GetAPIURL())
 	viperInstance.SetDefault("api_key", "")
 
 	// Set config file name and type
@@ -70,7 +84,7 @@ func InitConfig() error {
 	viperInstance.AutomaticEnv()
 
 	// Bind environment variables
-	viperInstance.BindEnv("api_url", "CLOUD_STORAGE_API_URL")
+	// Note: API URL is hardcoded at compile time, env var is ignored
 	viperInstance.BindEnv("api_key", "CLOUD_STORAGE_API_KEY")
 
 	// Read config file (ignore error if file doesn't exist)
@@ -97,10 +111,8 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// Ensure API URL has a default if empty
-	if cfg.APIURL == "" {
-		cfg.APIURL = defaultAPIURL
-	}
+	// API URL is hardcoded at compile time - always use the build-time value
+	cfg.APIURL = GetAPIURL()
 
 	return &cfg, nil
 }
@@ -168,13 +180,12 @@ func SetValue(key, value string) error {
 	}
 
 	// Update the specified key
+	// Note: api-url cannot be set via SetValue - it should only come from env var or flag
 	switch key {
-	case "api-url", "api_url":
-		cfg.APIURL = value
 	case "api-key", "api_key":
 		cfg.APIKey = value
 	default:
-		return fmt.Errorf("unknown config key: %s", key)
+		return fmt.Errorf("unknown config key: %s. Only api-key can be set via config", key)
 	}
 
 	// Save updated config
@@ -190,7 +201,8 @@ func GetValue(key string) (string, error) {
 
 	switch key {
 	case "api-url", "api_url":
-		return cfg.APIURL, nil
+		// API URL is hardcoded at compile time
+		return GetAPIURL(), nil
 	case "api-key", "api_key":
 		return cfg.APIKey, nil
 	default:

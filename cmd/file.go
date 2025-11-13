@@ -453,27 +453,32 @@ func displayFileList(pageResp *file.PageResponse) {
 
 // fileDownloadCmd represents the file download command
 var fileDownloadCmd = &cobra.Command{
-	Use:   "download <file-id>",
+	Use:   "download <file-id-or-path>",
 	Short: "Download a file from cloud storage",
 	Long: `Download a file from cloud storage to your local filesystem.
+
+You can download by:
+  - File ID (UUID): 550e8400-e29b-41d4-a716-446655440000
+  - Filepath: /photos/2024/image.jpg or document.pdf (for root folder)
 
 The file will be saved to the specified output path, or to the current directory
 if no output path is provided. If the output path is a directory, the file will
 be saved with its original filename in that directory.
 
 Examples:
+  # Download by UUID
   cloud-storage-api-cli file download 550e8400-e29b-41d4-a716-446655440000
-  cloud-storage-api-cli file download 550e8400-e29b-41d4-a716-446655440000 --output ./downloads/
-  cloud-storage-api-cli file download 550e8400-e29b-41d4-a716-446655440000 --output ./myfile.pdf`,
+  
+  # Download by filepath
+  cloud-storage-api-cli file download /photos/2024/image.jpg
+  cloud-storage-api-cli file download document.pdf
+  
+  # Download with custom output
+  cloud-storage-api-cli file download /documents/report.pdf --output ./downloads/`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fileID := args[0]
+		identifier := args[0]
 		outputPath, _ := cmd.Flags().GetString("output")
-
-		// Validate UUID format
-		if err := util.ValidateUUID(fileID); err != nil {
-			return err
-		}
 
 		// Create API client
 		apiClient, err := client.NewClient()
@@ -481,11 +486,24 @@ Examples:
 			return fmt.Errorf("failed to create API client: %w", err)
 		}
 
-		// Download file
-		path := fmt.Sprintf("/api/files/%s/download", fileID)
-		finalPath, err := apiClient.DownloadFile(path, outputPath)
-		if err != nil {
-			return fmt.Errorf("download failed: %w", err)
+		// Check if identifier is a UUID or filepath
+		var finalPath string
+		if err := util.ValidateUUID(identifier); err == nil {
+			// It's a UUID - use existing download endpoint
+			path := fmt.Sprintf("/api/files/%s/download", identifier)
+			finalPath, err = apiClient.DownloadFile(path, outputPath)
+			if err != nil {
+				return fmt.Errorf("download failed: %w", err)
+			}
+		} else {
+			// It's a filepath - use new download-by-path endpoint
+			// URL encode the filepath
+			encodedPath := url.QueryEscape(identifier)
+			path := fmt.Sprintf("/api/files/download-by-path?filepath=%s", encodedPath)
+			finalPath, err = apiClient.DownloadFile(path, outputPath)
+			if err != nil {
+				return fmt.Errorf("download failed: %w", err)
+			}
 		}
 
 		// Get file info for display
