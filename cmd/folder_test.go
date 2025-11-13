@@ -57,7 +57,7 @@ func TestFolderCreate_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test create
 	createReq := file.FolderCreateRequest{
@@ -107,7 +107,7 @@ func TestFolderList_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test list
 	var listResp file.FolderListResponse
@@ -140,7 +140,7 @@ func TestFolderDelete_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test delete
 	err := apiClient.Delete("/api/folders?path=/documents")
@@ -182,7 +182,7 @@ func TestFolderStats_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test stats
 	var statsResp file.FolderStatisticsResponse
@@ -209,7 +209,7 @@ func TestFolderCreate_ErrorHandling(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test create with invalid path
 	createReq := file.FolderCreateRequest{
@@ -232,7 +232,7 @@ func TestFolderDelete_ErrorHandling(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test delete with non-existent folder
 	err := apiClient.Delete("/api/folders?path=/nonexistent")
@@ -250,7 +250,7 @@ func TestFolderStats_ErrorHandling(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test stats with non-existent folder
 	var statsResp file.FolderStatisticsResponse

@@ -49,17 +49,6 @@ func TestClient_Get(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name: "GET with JWT token",
-			responseBody: map[string]interface{}{
-				"id": "123",
-			},
-			statusCode:   http.StatusOK,
-			wantErr:      false,
-			checkAuth:    true,
-			expectedAuth: "Bearer test-token",
-			authType:     "token",
-		},
-		{
 			name: "GET with API key",
 			responseBody: map[string]interface{}{
 				"id": "123",
@@ -123,12 +112,10 @@ func TestClient_Get(t *testing.T) {
 
 			// Create client
 			var client *Client
-			if tt.authType == "token" {
-				client = NewClientWithConfig(server.URL, "test-token", "")
-			} else if tt.authType == "apikey" {
-				client = NewClientWithConfig(server.URL, "", "test-api-key")
+			if tt.authType == "apikey" {
+				client = NewClientWithConfig(server.URL, "test-api-key")
 			} else {
-				client = NewClientWithConfig(server.URL, "", "")
+				client = NewClientWithConfig(server.URL, "")
 			}
 
 			// Test GET
@@ -204,7 +191,7 @@ func TestClient_Post(t *testing.T) {
 			})
 			defer server.Close()
 
-			client := NewClientWithConfig(server.URL, "test-token", "")
+			client := NewClientWithConfig(server.URL, "")
 			var result map[string]interface{}
 			err := client.Post("/api/test", tt.requestBody, &result)
 
@@ -226,7 +213,7 @@ func TestClient_Put(t *testing.T) {
 	})
 	defer server.Close()
 
-	client := NewClientWithConfig(server.URL, "test-token", "")
+	client := NewClientWithConfig(server.URL, "")
 	var result map[string]interface{}
 	err := client.Put("/api/test", map[string]interface{}{"name": "test"}, &result)
 
@@ -244,7 +231,7 @@ func TestClient_Delete(t *testing.T) {
 	})
 	defer server.Close()
 
-	client := NewClientWithConfig(server.URL, "test-token", "")
+	client := NewClientWithConfig(server.URL, "")
 	err := client.Delete("/api/test")
 
 	if err != nil {
@@ -353,7 +340,7 @@ func TestClient_UploadFile(t *testing.T) {
 				t.Fatalf("Failed to create temp file: %v", err)
 			}
 
-			client := NewClientWithConfig(server.URL, "test-token", "")
+			client := NewClientWithConfig(server.URL, "")
 			var result map[string]interface{}
 			err = client.UploadFile("/api/files/upload", tmpFile, tt.folderPath, tt.filename, &result)
 
@@ -427,7 +414,7 @@ func TestClient_DownloadFile(t *testing.T) {
 				outputPath = outputDir
 			}
 
-			client := NewClientWithConfig(server.URL, "test-token", "")
+			client := NewClientWithConfig(server.URL, "")
 			filePath, err := client.DownloadFile("/api/files/123/download", outputPath)
 
 			if (err != nil) != tt.wantErr {
@@ -486,7 +473,7 @@ func TestClient_ErrorHandling(t *testing.T) {
 			})
 			defer server.Close()
 
-			client := NewClientWithConfig(server.URL, "", "")
+			client := NewClientWithConfig(server.URL, "")
 			var result map[string]interface{}
 			err := client.Get("/api/test", &result)
 
@@ -512,18 +499,13 @@ func TestClient_ErrorHandling(t *testing.T) {
 	}
 }
 
-func TestClient_APIPrecedence(t *testing.T) {
-	// Test that API key takes precedence over access token
+func TestClient_APIKeyAuth(t *testing.T) {
+	// Test that API key is sent in header
 	server := setupTestServer(func(w http.ResponseWriter, r *http.Request) {
 		apiKey := r.Header.Get("X-API-Key")
-		auth := r.Header.Get("Authorization")
 
 		if apiKey != "test-api-key" {
-			t.Errorf("Expected X-API-Key header, got %q", apiKey)
-		}
-
-		if auth != "" {
-			t.Errorf("Expected no Authorization header when API key is set, got %q", auth)
+			t.Errorf("Expected X-API-Key header 'test-api-key', got %q", apiKey)
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -531,7 +513,7 @@ func TestClient_APIPrecedence(t *testing.T) {
 	})
 	defer server.Close()
 
-	client := NewClientWithConfig(server.URL, "test-token", "test-api-key")
+	client := NewClientWithConfig(server.URL, "test-api-key")
 	var result map[string]interface{}
 	err := client.Get("/api/test", &result)
 

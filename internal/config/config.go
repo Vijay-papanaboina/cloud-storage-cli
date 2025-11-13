@@ -25,10 +25,8 @@ import (
 
 // Config represents the CLI configuration
 type Config struct {
-	APIURL       string `mapstructure:"api_url" yaml:"api_url"`
-	AccessToken  string `mapstructure:"access_token" yaml:"access_token"`
-	RefreshToken string `mapstructure:"refresh_token" yaml:"refresh_token"`
-	APIKey       string `mapstructure:"api_key" yaml:"api_key"`
+	APIURL string `mapstructure:"api_url" yaml:"api_url"`
+	APIKey string `mapstructure:"api_key" yaml:"api_key"`
 }
 
 var (
@@ -49,8 +47,6 @@ func InitConfig() error {
 
 	// Set defaults
 	viperInstance.SetDefault("api_url", defaultAPIURL)
-	viperInstance.SetDefault("access_token", "")
-	viperInstance.SetDefault("refresh_token", "")
 	viperInstance.SetDefault("api_key", "")
 
 	// Set config file name and type
@@ -75,8 +71,6 @@ func InitConfig() error {
 
 	// Bind environment variables
 	viperInstance.BindEnv("api_url", "CLOUD_STORAGE_API_URL")
-	viperInstance.BindEnv("access_token", "CLOUD_STORAGE_ACCESS_TOKEN")
-	viperInstance.BindEnv("refresh_token", "CLOUD_STORAGE_REFRESH_TOKEN")
 	viperInstance.BindEnv("api_key", "CLOUD_STORAGE_API_KEY")
 
 	// Read config file (ignore error if file doesn't exist)
@@ -121,8 +115,6 @@ func SaveConfig(cfg *Config) error {
 
 	// Set values in Viper
 	viperInstance.Set("api_url", cfg.APIURL)
-	viperInstance.Set("access_token", cfg.AccessToken)
-	viperInstance.Set("refresh_token", cfg.RefreshToken)
 	viperInstance.Set("api_key", cfg.APIKey)
 
 	// Ensure config directory exists
@@ -179,10 +171,6 @@ func SetValue(key, value string) error {
 	switch key {
 	case "api-url", "api_url":
 		cfg.APIURL = value
-	case "access-token", "access_token":
-		cfg.AccessToken = value
-	case "refresh-token", "refresh_token":
-		cfg.RefreshToken = value
 	case "api-key", "api_key":
 		cfg.APIKey = value
 	default:
@@ -203,10 +191,6 @@ func GetValue(key string) (string, error) {
 	switch key {
 	case "api-url", "api_url":
 		return cfg.APIURL, nil
-	case "access-token", "access_token":
-		return cfg.AccessToken, nil
-	case "refresh-token", "refresh_token":
-		return cfg.RefreshToken, nil
 	case "api-key", "api_key":
 		return cfg.APIKey, nil
 	default:
@@ -216,7 +200,7 @@ func GetValue(key string) (string, error) {
 
 // IsSensitiveKey returns true if the key contains sensitive information
 func IsSensitiveKey(key string) bool {
-	sensitiveKeys := []string{"access-token", "access_token", "refresh-token", "refresh_token", "api-key", "api_key"}
+	sensitiveKeys := []string{"api-key", "api_key"}
 	for _, sk := range sensitiveKeys {
 		if key == sk {
 			return true

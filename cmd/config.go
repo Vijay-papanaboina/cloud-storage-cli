@@ -33,8 +33,6 @@ Configuration is stored in ~/.cloud-storage-cli/config.yaml
 
 You can view, get, or set configuration values:
   - api-url: API base URL (default: http://localhost:8000)
-  - access-token: JWT access token
-  - refresh-token: JWT refresh token
   - api-key: API key for authentication
 
 Examples:
@@ -63,18 +61,14 @@ var configShowCmd = &cobra.Command{
 		if jsonOutput {
 			// For JSON output, create a struct with masked values
 			type ConfigOutput struct {
-				ConfigFile   string `json:"configFile"`
-				APIURL       string `json:"apiUrl"`
-				AccessToken  string `json:"accessToken"`
-				RefreshToken string `json:"refreshToken"`
-				APIKey       string `json:"apiKey"`
+				ConfigFile string `json:"configFile"`
+				APIURL     string `json:"apiUrl"`
+				APIKey     string `json:"apiKey"`
 			}
 			output := ConfigOutput{
-				ConfigFile:   config.GetConfigPath(),
-				APIURL:       cfg.APIURL,
-				AccessToken:  config.MaskValue(cfg.AccessToken),
-				RefreshToken: config.MaskValue(cfg.RefreshToken),
-				APIKey:       config.MaskValue(cfg.APIKey),
+				ConfigFile: config.GetConfigPath(),
+				APIURL:     cfg.APIURL,
+				APIKey:     config.MaskValue(cfg.APIKey),
 			}
 			return util.OutputJSON(output)
 		}
@@ -83,8 +77,6 @@ var configShowCmd = &cobra.Command{
 		fmt.Println("==============")
 		fmt.Printf("Config file: %s\n\n", config.GetConfigPath())
 		fmt.Printf("API URL:        %s\n", cfg.APIURL)
-		fmt.Printf("Access Token:   %s\n", config.MaskValue(cfg.AccessToken))
-		fmt.Printf("Refresh Token:  %s\n", config.MaskValue(cfg.RefreshToken))
 		fmt.Printf("API Key:        %s\n", config.MaskValue(cfg.APIKey))
 
 		return nil
@@ -99,8 +91,6 @@ var configGetCmd = &cobra.Command{
 
 Supported keys:
   - api-url
-  - access-token
-  - refresh-token
   - api-key
 
 Sensitive values are masked when displayed.`,
@@ -130,8 +120,6 @@ var configSetCmd = &cobra.Command{
 
 Supported keys:
   - api-url: API base URL
-  - access-token: JWT access token
-  - refresh-token: JWT refresh token
   - api-key: API key for authentication
 
 Examples:
@@ -143,7 +131,7 @@ Examples:
 		value := args[1]
 
 		// Validate key
-		validKeys := []string{"api-url", "api_url", "access-token", "access_token", "refresh-token", "refresh_token", "api-key", "api_key"}
+		validKeys := []string{"api-url", "api_url", "api-key", "api_key"}
 		isValid := false
 		for _, vk := range validKeys {
 			if key == vk {
@@ -152,7 +140,7 @@ Examples:
 			}
 		}
 		if !isValid {
-			return fmt.Errorf("invalid key: %s. Supported keys: api-url, access-token, refresh-token, api-key", key)
+			return fmt.Errorf("invalid key: %s. Supported keys: api-url, api-key", key)
 		}
 
 		if err := config.SetValue(key, value); err != nil {
@@ -177,4 +165,3 @@ func init() {
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configSetCmd)
 }
-

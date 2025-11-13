@@ -64,10 +64,8 @@ func TestSaveConfig(t *testing.T) {
 	defer cleanup()
 
 	cfg := &Config{
-		APIURL:       "http://test.example.com",
-		AccessToken:  "test-access-token",
-		RefreshToken: "test-refresh-token",
-		APIKey:       "test-api-key",
+		APIURL: "http://test.example.com",
+		APIKey: "test-api-key",
 	}
 
 	err := SaveConfig(cfg)
@@ -98,10 +96,8 @@ func TestLoadConfig(t *testing.T) {
 
 	// Save a config first
 	cfg := &Config{
-		APIURL:       "http://test.example.com",
-		AccessToken:  "test-access-token",
-		RefreshToken: "test-refresh-token",
-		APIKey:       "test-api-key",
+		APIURL: "http://test.example.com",
+		APIKey: "test-api-key",
 	}
 
 	err := SaveConfig(cfg)
@@ -120,10 +116,6 @@ func TestLoadConfig(t *testing.T) {
 
 	if loaded.APIURL != cfg.APIURL {
 		t.Errorf("Expected APIURL %q, got %q", cfg.APIURL, loaded.APIURL)
-	}
-
-	if loaded.AccessToken != cfg.AccessToken {
-		t.Errorf("Expected AccessToken %q, got %q", cfg.AccessToken, loaded.AccessToken)
 	}
 
 	if loaded.APIKey != cfg.APIKey {
@@ -164,9 +156,9 @@ func TestLoadConfig_Defaults(t *testing.T) {
 		t.Error("Expected APIURL to have a value, got empty string")
 	}
 
-	// AccessToken should be empty if no config file and no env var
+	// APIKey should be empty if no config file and no env var
 	// But we can't guarantee this due to env vars, so we just verify it loads
-	_ = cfg.AccessToken
+	_ = cfg.APIKey
 }
 
 func TestSetValue(t *testing.T) {
@@ -179,8 +171,6 @@ func TestSetValue(t *testing.T) {
 	}{
 		{"api-url", "http://new.example.com"},
 		{"api_url", "http://new2.example.com"},
-		{"access-token", "new-token"},
-		{"access_token", "new-token2"},
 		{"api-key", "new-key"},
 		{"api_key", "new-key2"},
 	}
@@ -251,10 +241,6 @@ func TestIsSensitiveKey(t *testing.T) {
 		key      string
 		expected bool
 	}{
-		{"access-token", true},
-		{"access_token", true},
-		{"refresh-token", true},
-		{"refresh_token", true},
 		{"api-key", true},
 		{"api_key", true},
 		{"api-url", false},

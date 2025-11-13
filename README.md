@@ -1,14 +1,13 @@
 # Cloud Storage API CLI
 
-A command-line interface (CLI) tool for interacting with the Cloud Storage API. This tool provides a convenient way to manage files, folders, authentication, and API keys from the terminal.
+A command-line interface (CLI) tool for interacting with the Cloud Storage API. This tool provides a convenient way to manage files and folders from the terminal using API key authentication.
 
 ## Features
 
-- **Authentication**: Login, register, logout, and manage user sessions
+- **API Key Authentication**: Verify and store API keys for secure authentication
 - **File Management**: Upload, download, list, search, update, and delete files
 - **Folder Management**: Create, list, delete folders and view folder statistics
-- **API Key Management**: Generate, list, retrieve, and revoke API keys
-- **Configuration Management**: Manage CLI settings and credentials
+- **Configuration Management**: Manage CLI settings and API keys
 
 ## Installation
 
@@ -16,6 +15,7 @@ A command-line interface (CLI) tool for interacting with the Cloud Storage API. 
 
 - Go 1.24 or later
 - Access to the Cloud Storage API
+- An API key (generated from the web interface)
 
 ### Build from Source
 
@@ -48,49 +48,34 @@ The CLI stores configuration in `~/.cloud-storage-cli/config.yaml`. You can mana
 ### Environment Variables
 
 - `CLOUD_STORAGE_API_URL`: API base URL (default: `http://localhost:8000`)
-- `CLOUD_STORAGE_ACCESS_TOKEN`: JWT access token
-- `CLOUD_STORAGE_REFRESH_TOKEN`: JWT refresh token
 - `CLOUD_STORAGE_API_KEY`: API key for authentication
 
 ### Config File
 
-The config file is automatically created on first use. Sensitive values (tokens, API keys) are stored securely with file permissions 0600 (owner read/write only).
+The config file is automatically created on first use. Sensitive values (API keys) are stored securely with file permissions 0600 (owner read/write only).
 
 ## Usage
 
 ### Authentication
 
-#### Login
+The CLI uses API key authentication. API keys must be generated from the web interface at the Settings page.
+
+#### Login (Verify and Store API Key)
 
 ```bash
-cloud-storage-api-cli auth login <username>
-# Password will be prompted securely
+cloud-storage-api-cli auth login
+# API key will be prompted securely
 ```
 
-#### Register
-
-```bash
-cloud-storage-api-cli auth register <username> <email>
-# Password will be prompted securely
-```
-
-#### Logout
-
-```bash
-cloud-storage-api-cli auth logout
-```
-
-#### Refresh Token
-
-```bash
-cloud-storage-api-cli auth refresh
-```
+This command verifies your API key and saves it to the configuration file for future use.
 
 #### View Current User
 
 ```bash
-cloud-storage-api-cli auth me
+cloud-storage-api-cli auth status
 ```
+
+Displays information about the currently authenticated user based on the stored API key.
 
 ### File Management
 
@@ -173,36 +158,6 @@ cloud-storage-api-cli folder info /photos/2024
 cloud-storage-api-cli folder stats /photos/2024  # alias
 ```
 
-### API Key Management
-
-#### Generate API Key
-
-```bash
-cloud-storage-api-cli apikey generate --name "My API Key"
-cloud-storage-api-cli apikey generate --name "Temporary Key" --expires-at "2025-12-31T23:59:59Z"
-```
-
-**⚠️ Security Warning**: The API key is only displayed once. Store it securely.
-
-#### List API Keys
-
-```bash
-cloud-storage-api-cli apikey list
-```
-
-#### Get API Key Details
-
-```bash
-cloud-storage-api-cli apikey get <api-key-id>
-```
-
-#### Revoke API Key
-
-```bash
-cloud-storage-api-cli apikey revoke <api-key-id>
-cloud-storage-api-cli apikey revoke <api-key-id> --force
-```
-
 ### Configuration
 
 #### Show Configuration
@@ -250,8 +205,6 @@ The CLI validates all inputs to ensure security and correctness:
 - **UUIDs**: Validated for proper format (8-4-4-4-12 hex digits)
 - **Paths**: Must start with `/`, no path traversal (`..`), no backslashes
 - **Filenames**: No path separators, no control characters, no reserved names
-- **Usernames**: 3-50 characters, alphanumeric with underscores, hyphens, dots
-- **Emails**: Basic format validation
 - **Pagination**: Page number >= 0, page size 1-100
 
 ## Error Handling
@@ -270,7 +223,7 @@ API error (404) [GET http://localhost:8000/api/files/123]: File not found
 
 ## Security Features
 
-- **Secure Password Input**: Passwords are never passed as command-line arguments
+- **Secure API Key Input**: API keys are never passed as command-line arguments
 - **Config File Permissions**: Configuration files use 0600 permissions (owner-only access)
 - **Credential Masking**: Sensitive values are masked when displayed
 - **Input Sanitization**: All user inputs are validated and sanitized
@@ -281,29 +234,27 @@ API error (404) [GET http://localhost:8000/api/files/123]: File not found
 ### Complete Workflow
 
 ```bash
-# 1. Register and login
-cloud-storage-api-cli auth register myuser user@example.com
-cloud-storage-api-cli auth login myuser
+# 1. Login with API key (verify and store)
+cloud-storage-api-cli auth login
 
-# 2. Create a folder
+# 2. Check authentication status
+cloud-storage-api-cli auth status
+
+# 3. Create a folder
 cloud-storage-api-cli folder create /documents
 
-# 3. Upload files
+# 4. Upload files
 cloud-storage-api-cli file upload ./report.pdf --folder-path /documents
 cloud-storage-api-cli file upload ./photo.jpg --folder-path /photos
 
-# 4. List files
+# 5. List files
 cloud-storage-api-cli file list --folder-path /documents
 
-# 5. Search files
+# 6. Search files
 cloud-storage-api-cli file search report
 
-# 6. Download a file
+# 7. Download a file
 cloud-storage-api-cli file download <file-id> --output ./downloads/
-
-# 7. Generate API key for automation
-cloud-storage-api-cli apikey generate --name "CI/CD Key"
-cloud-storage-api-cli config set api-key <generated-key>
 
 # 8. View statistics
 cloud-storage-api-cli file info
@@ -316,24 +267,25 @@ cloud-storage-api-cli folder info /documents
 
 If you're having authentication issues:
 
-1. Check your tokens:
+1. Check your API key:
 
 ```bash
 cloud-storage-api-cli config show
 ```
 
-2. Refresh your access token:
+2. Verify your API key:
 
 ```bash
-cloud-storage-api-cli auth refresh
+cloud-storage-api-cli auth status
 ```
 
-3. Re-login if refresh fails:
+3. Re-login with a new API key:
 
 ```bash
-cloud-storage-api-cli auth logout
-cloud-storage-api-cli auth login <username>
+cloud-storage-api-cli auth login
 ```
+
+**Note**: API keys must be generated from the web interface. If you need a new API key, visit the Settings page in the web application.
 
 ### Network Issues
 
@@ -377,6 +329,7 @@ ls -l ~/.cloud-storage-cli/config.yaml
 
 ```bash
 export CLOUD_STORAGE_API_URL=http://api.example.com
+export CLOUD_STORAGE_API_KEY=your-api-key-here
 cloud-storage-api-cli file list
 ```
 
@@ -387,16 +340,14 @@ cloud-storage-api-cli file list
 ```
 cloud-storage-cli/
 ├── cmd/              # CLI commands
-│   ├── auth.go       # Authentication commands
+│   ├── auth.go       # Authentication commands (API key verification)
 │   ├── file.go       # File management commands
 │   ├── folder.go     # Folder management commands
-│   ├── apikey.go     # API key management commands
 │   ├── config.go     # Configuration commands
 │   └── root.go       # Root command
 ├── internal/
 │   ├── client/       # HTTP client
 │   ├── config/       # Configuration management
-│   ├── auth/         # Authentication helpers
 │   ├── file/         # File-related types
 │   └── util/         # Utility functions
 ├── main.go           # Entry point

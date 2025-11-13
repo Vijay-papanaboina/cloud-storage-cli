@@ -39,10 +39,9 @@ const (
 
 // Client represents an HTTP client for API communication
 type Client struct {
-	BaseURL     string
-	HTTPClient  *http.Client
-	AccessToken string
-	APIKey      string
+	BaseURL    string
+	HTTPClient *http.Client
+	APIKey     string
 }
 
 // NewClient creates a new API client instance
@@ -54,9 +53,8 @@ func NewClient() (*Client, error) {
 	}
 
 	client := &Client{
-		BaseURL:     cfg.APIURL,
-		AccessToken: cfg.AccessToken,
-		APIKey:      cfg.APIKey,
+		BaseURL: cfg.APIURL,
+		APIKey:  cfg.APIKey,
 		HTTPClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
@@ -67,11 +65,10 @@ func NewClient() (*Client, error) {
 
 // NewClientWithConfig creates a new API client with explicit configuration
 // Useful for testing or when config needs to be overridden
-func NewClientWithConfig(baseURL, accessToken, apiKey string) *Client {
+func NewClientWithConfig(baseURL, apiKey string) *Client {
 	return &Client{
-		BaseURL:     baseURL,
-		AccessToken: accessToken,
-		APIKey:      apiKey,
+		BaseURL: baseURL,
+		APIKey:  apiKey,
 		HTTPClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
@@ -98,12 +95,10 @@ func (c *Client) buildURL(path string) (string, error) {
 }
 
 // setAuthHeaders adds authentication headers to the request
-// API key takes precedence if both are set (matches API behavior)
+// Uses API key for authentication
 func (c *Client) setAuthHeaders(req *http.Request) {
 	if c.APIKey != "" {
 		req.Header.Set("X-API-Key", c.APIKey)
-	} else if c.AccessToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.AccessToken)
 	}
 }
 
@@ -265,8 +260,7 @@ func (c *Client) Delete(path string) error {
 }
 
 // UpdateAuth updates the authentication credentials in the client
-func (c *Client) UpdateAuth(accessToken, apiKey string) {
-	c.AccessToken = accessToken
+func (c *Client) UpdateAuth(apiKey string) {
 	c.APIKey = apiKey
 }
 
@@ -302,7 +296,7 @@ func (c *Client) UploadFile(path string, filePath string, folderPath string, fil
 
 	// Create progress bar for upload
 	bar := progressbar.DefaultBytes(fileSize, "Uploading")
-	
+
 	// Copy file content to form field with progress tracking
 	_, err = io.Copy(io.MultiWriter(part, bar), file)
 	if err != nil {
@@ -410,15 +404,15 @@ func sanitizeFilename(filename string) string {
 	filename = strings.ReplaceAll(filename, "/", "_")
 	filename = strings.ReplaceAll(filename, "\\", "_")
 	filename = strings.ReplaceAll(filename, "..", "_")
-	
+
 	// Remove any remaining path components
 	filename = filepath.Base(filename)
-	
+
 	// If empty after sanitization, use a default
 	if filename == "" || filename == "." || filename == ".." {
 		return "download"
 	}
-	
+
 	return filename
 }
 
@@ -463,7 +457,7 @@ func (c *Client) DownloadFile(path string, outputPath string) (string, error) {
 	// Extract filename from Content-Disposition header
 	contentDisposition := resp.Header.Get("Content-Disposition")
 	filename := extractFilenameFromContentDisposition(contentDisposition)
-	
+
 	// Sanitize filename
 	if filename != "" {
 		filename = sanitizeFilename(filename)

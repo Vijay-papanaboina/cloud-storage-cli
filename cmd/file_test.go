@@ -74,7 +74,7 @@ func TestFileUpload_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test upload
 	var fileResp file.FileResponse
@@ -136,7 +136,7 @@ func TestFileList_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test list
 	var pageResp file.PageResponse
@@ -181,7 +181,7 @@ func TestFileSearch_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test search
 	var pageResp file.PageResponse
@@ -215,7 +215,7 @@ func TestFileDownload_Integration(t *testing.T) {
 	outputDir := testutil.CreateTestDir(t)
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test download
 	filePath, err := apiClient.DownloadFile("/api/files/123/download", outputDir)
@@ -266,7 +266,7 @@ func TestFileUpdate_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test update
 	newName := "new-name.txt"
@@ -298,7 +298,7 @@ func TestFileDelete_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test delete
 	err := apiClient.Delete("/api/files/123")
@@ -336,7 +336,7 @@ func TestFileInfo_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test info
 	var stats file.FileStatisticsResponse
@@ -363,7 +363,7 @@ func TestFileUpload_ErrorHandling(t *testing.T) {
 	defer os.Remove(testFile)
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test upload with error
 	var fileResp file.FileResponse
@@ -385,7 +385,7 @@ func TestFileDownload_ErrorHandling(t *testing.T) {
 	outputDir := testutil.CreateTestDir(t)
 
 	// Create client
-	apiClient := client.NewClientWithConfig(server.URL, "test-token", "")
+	apiClient := client.NewClientWithConfig(server.URL, "")
 
 	// Test download with error
 	_, err := apiClient.DownloadFile("/api/files/999/download", outputDir)
