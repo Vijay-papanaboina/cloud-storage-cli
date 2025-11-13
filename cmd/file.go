@@ -223,7 +223,7 @@ Examples:
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		query := args[0]
-		
+
 		// Validate query is not empty
 		if strings.TrimSpace(query) == "" {
 			return fmt.Errorf("search query cannot be empty")
@@ -283,6 +283,85 @@ Examples:
 
 		// Display results
 		displayFileList(&pageResp)
+
+		return nil
+	},
+}
+
+// fileUrlCmd represents the file url command
+var fileUrlCmd = &cobra.Command{
+	Use:   "url <file-id-or-path>",
+	Short: "Get signed download URL for a file",
+	Long: `Get a signed download URL for a file that can be used to download the file directly.
+
+You can get URL by:
+  - File ID (UUID): 550e8400-e29b-41d4-a716-446655440000
+  - Filepath: /photos/2024/image.jpg or document.pdf (for root folder)
+
+The URL will expire after the specified number of minutes (default: 60 minutes, max: 1440 minutes / 24 hours).
+
+Examples:
+  # Get URL by UUID
+  cloud-storage-api-cli file url 550e8400-e29b-41d4-a716-446655440000
+  
+  # Get URL by filepath
+  cloud-storage-api-cli file url /photos/2024/image.jpg
+  cloud-storage-api-cli file url document.pdf
+  
+  # Get URL with custom expiration time (in minutes)
+  cloud-storage-api-cli file url /documents/report.pdf --expiration-minutes 120`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		identifier := args[0]
+		expirationMinutes, _ := cmd.Flags().GetInt("expiration-minutes")
+
+		// Validate expiration minutes
+		if expirationMinutes <= 0 {
+			return fmt.Errorf("expiration-minutes must be greater than 0")
+		}
+		if expirationMinutes > 1440 {
+			return fmt.Errorf("expiration-minutes cannot exceed 1440 (24 hours)")
+		}
+
+		// Create API client
+		apiClient, err := client.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create API client: %w", err)
+		}
+
+		// Check if identifier is a UUID or filepath
+		var urlResp file.FileUrlResponse
+		if err := util.ValidateUUID(identifier); err == nil {
+			// It's a UUID - use existing URL endpoint
+			path := fmt.Sprintf("/api/files/%s/url?expirationMinutes=%d", identifier, expirationMinutes)
+			if err := apiClient.Get(path, &urlResp); err != nil {
+				return fmt.Errorf("failed to get file URL: %w", err)
+			}
+		} else {
+			// It's a filepath - use new url-by-path endpoint
+			encodedPath := url.QueryEscape(identifier)
+			path := fmt.Sprintf("/api/files/url-by-path?filepath=%s&expirationMinutes=%d", encodedPath, expirationMinutes)
+			if err := apiClient.Get(path, &urlResp); err != nil {
+				return fmt.Errorf("failed to get file URL: %w", err)
+			}
+		}
+
+		// Check if JSON output is requested
+		if jsonOutput {
+			return util.OutputJSON(urlResp)
+		}
+
+		// Display URL information
+		fmt.Println("Signed Download URL:")
+		fmt.Println("====================")
+		fmt.Printf("URL:           %s\n", urlResp.URL)
+		fmt.Printf("Expires At:    %s\n", urlResp.ExpiresAt.Format(time.RFC3339))
+		if urlResp.Format != "" {
+			fmt.Printf("Format:        %s\n", urlResp.Format)
+		}
+		if urlResp.ResourceType != "" {
+			fmt.Printf("Resource Type: %s\n", urlResp.ResourceType)
+		}
 
 		return nil
 	},
@@ -386,9 +465,9 @@ func displayFileList(pageResp *file.PageResponse) {
 	}
 
 	// Print header
-	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n", 
-		pageResp.Pageable.PageNumber+1, 
-		pageResp.TotalPages, 
+	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n",
+		pageResp.Pageable.PageNumber+1,
+		pageResp.TotalPages,
 		pageResp.TotalElements)
 
 	// Print table header
@@ -683,6 +762,9 @@ func init() {
 	// Add info subcommand to file command
 	fileCmd.AddCommand(fileInfoCmd)
 
+	// Add url subcommand to file command
+	fileCmd.AddCommand(fileUrlCmd)
+
 	// Add flags to upload command
 	fileUploadCmd.Flags().String("folder-path", "", "Optional folder path (Unix-style, e.g., /photos/2024)")
 	fileUploadCmd.Flags().String("filename", "", "Custom filename (optional, defaults to original filename)")
@@ -709,4 +791,7 @@ func init() {
 	fileSearchCmd.Flags().Int("size", 20, "Page size (default: 20, max: 100)")
 	fileSearchCmd.Flags().String("content-type", "", "Filter by content type (e.g., image/jpeg)")
 	fileSearchCmd.Flags().String("folder-path", "", "Filter by folder path (e.g., /photos/2024)")
+
+	// Add flags to url command
+	fileUrlCmd.Flags().Int("expiration-minutes", 60, "URL expiration time in minutes (default: 60, max: 1440)")
 }

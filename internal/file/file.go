@@ -19,32 +19,32 @@ import "time"
 
 // FileResponse represents file information from the API
 type FileResponse struct {
-	ID                  string     `json:"id"`
-	Filename            string     `json:"filename"`
-	ContentType         string     `json:"contentType"`
-	FileSize            int64      `json:"fileSize"`
-	FolderPath          *string    `json:"folderPath,omitempty"`
-	CloudinaryUrl       string     `json:"cloudinaryUrl"`
-	CloudinarySecureUrl string     `json:"cloudinarySecureUrl"`
-	CreatedAt           time.Time  `json:"createdAt"`
-	UpdatedAt           time.Time  `json:"updatedAt"`
+	ID                  string    `json:"id"`
+	Filename            string    `json:"filename"`
+	ContentType         string    `json:"contentType"`
+	FileSize            int64     `json:"fileSize"`
+	FolderPath          *string   `json:"folderPath,omitempty"`
+	CloudinaryUrl       string    `json:"cloudinaryUrl"`
+	CloudinarySecureUrl string    `json:"cloudinarySecureUrl"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 // PageResponse represents a paginated response from the API
 type PageResponse struct {
-	Content          []FileResponse  `json:"content"`
+	Content          []FileResponse   `json:"content"`
 	Pageable         PageableResponse `json:"pageable"`
-	TotalElements    int64           `json:"totalElements"`
-	TotalPages       int             `json:"totalPages"`
-	First            bool            `json:"first"`
-	Last             bool            `json:"last"`
-	NumberOfElements int             `json:"numberOfElements"`
+	TotalElements    int64            `json:"totalElements"`
+	TotalPages       int              `json:"totalPages"`
+	First            bool             `json:"first"`
+	Last             bool             `json:"last"`
+	NumberOfElements int              `json:"numberOfElements"`
 }
 
 // PageableResponse represents pagination information
 type PageableResponse struct {
-	PageNumber int          `json:"pageNumber"`
-	PageSize   int          `json:"pageSize"`
+	PageNumber int           `json:"pageNumber"`
+	PageSize   int           `json:"pageSize"`
 	Sort       *SortResponse `json:"sort,omitempty"`
 }
 
@@ -81,7 +81,7 @@ type FolderCreateRequest struct {
 type FolderResponse struct {
 	Path        string    `json:"path"`
 	Description *string   `json:"description,omitempty"`
-	FileCount   int64     `json:"fileCount"`	
+	FileCount   int64     `json:"fileCount"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
@@ -92,12 +92,20 @@ type FolderListResponse struct {
 
 // FolderStatisticsResponse represents folder statistics from the API
 type FolderStatisticsResponse struct {
-	Path          string            `json:"path"`
-	TotalFiles    int64             `json:"totalFiles"`
-	TotalSize     int64             `json:"totalSize"`
-	AverageFileSize int64           `json:"averageFileSize"`
-	StorageUsed   string            `json:"storageUsed"`
-	ByContentType map[string]int64  `json:"byContentType"`
-	CreatedAt     time.Time         `json:"createdAt"`
+	Path            string           `json:"path"`
+	TotalFiles      int64            `json:"totalFiles"`
+	TotalSize       int64            `json:"totalSize"`
+	AverageFileSize int64            `json:"averageFileSize"`
+	StorageUsed     string           `json:"storageUsed"`
+	ByContentType   map[string]int64 `json:"byContentType"`
+	CreatedAt       time.Time        `json:"createdAt"`
 }
 
+// FileUrlResponse represents a signed download URL response from the API
+type FileUrlResponse struct {
+	URL          string    `json:"url"`
+	PublicID     string    `json:"publicId"`
+	Format       string    `json:"format"`
+	ResourceType string    `json:"resourceType"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+}
