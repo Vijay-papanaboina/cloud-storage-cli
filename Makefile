@@ -55,3 +55,15 @@ test-race:
 test-cover:
 	@echo "Running tests with coverage..."
 	go test -cover ./...
+
+test-unit:
+	@echo "Running unit tests..."
+	go test -tags=unit ./...
+
+test-integration:
+	@echo "Running integration tests..."
+	go test -tags=integration ./...
+
+test-security:
+	@echo "Running security tests..."
+	go test -tags=security ./...

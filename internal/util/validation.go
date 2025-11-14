@@ -80,6 +80,10 @@ func ValidateFilename(filename string) error {
 	if filename == "" {
 		return fmt.Errorf("filename cannot be empty")
 	}
+	// Platform-independent check: explicitly reject backslashes before normalization
+	if strings.Contains(filename, "\\") {
+		return fmt.Errorf("filename cannot contain path separators")
+	}
 	// Get base name to prevent path traversal
 	baseName := filepath.Base(filename)
 	if baseName != filename {

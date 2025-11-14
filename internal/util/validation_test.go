@@ -27,10 +27,13 @@ func TestValidateUUID(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		// Valid cases
 		{"valid lowercase", "550e8400-e29b-41d4-a716-446655440000", false, ""},
 		{"valid uppercase", "550E8400-E29B-41D4-A716-446655440000", false, ""},
 		{"valid mixed case", "550e8400-E29b-41d4-A716-446655440000", false, ""},
+		// Invalid cases - empty
 		{"empty", "", true, "UUID cannot be empty"},
+		// Invalid cases - format errors
 		{"missing hyphens", "550e8400e29b41d4a716446655440000", true, "invalid UUID format"},
 		{"wrong separator", "550e8400_e29b_41d4_a716_446655440000", true, "invalid UUID format"},
 		{"too short", "550e8400-e29b-41d4-a716-44665544000", true, "invalid UUID format"},
@@ -58,12 +61,17 @@ func TestValidatePath(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		// Valid cases
 		{"valid root", "/", false, ""},
 		{"valid simple", "/documents", false, ""},
 		{"valid nested", "/documents/photos/2024", false, ""},
+		// Invalid cases - empty
 		{"empty", "", true, "path cannot be empty"},
+		// Invalid cases - format errors
 		{"no leading slash", "documents", true, "path must start with '/'"},
+		// Invalid cases - security (path traversal)
 		{"path traversal", "/documents/../etc", true, "path cannot contain '..'"},
+		// Invalid cases - invalid characters
 		{"backslash", "/documents\\photos", true, "path must use forward slashes"},
 		{"null byte", "/documents\x00/photos", true, "path cannot contain null bytes"},
 		{"tab char", "/documents\t/photos", true, "path cannot contain control characters"},
@@ -91,15 +99,21 @@ func TestValidateFilename(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		// Valid cases
 		{"valid simple", "document.pdf", false, ""},
 		{"valid with underscore", "my_file.txt", false, ""},
 		{"valid with hyphen", "my-file.txt", false, ""},
+		// Invalid cases - empty
 		{"empty", "", true, "filename cannot be empty"},
+		// Invalid cases - path separators
 		{"with slash", "documents/file.txt", true, "filename cannot contain path separators"},
+		// Invalid cases - special names
 		{"current dir", ".", true, "filename cannot be '.' or '..'"},
 		{"parent dir", "..", true, "filename cannot be '.' or '..'"},
+		// Invalid cases - invalid characters
 		{"null byte", "file\x00.txt", true, "filename cannot contain null bytes"},
 		{"tab char", "file\t.txt", true, "filename cannot contain control characters"},
+		// Invalid cases - reserved names (Windows)
 		{"reserved CON", "CON", true, "filename cannot be a reserved name: CON"},
 		{"reserved CON lowercase", "con", true, "filename cannot be a reserved name: CON"},
 		{"reserved CON.ext", "CON.txt", true, "filename cannot be a reserved name: CON"},
@@ -129,11 +143,14 @@ func TestValidateEmail(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		// Valid cases
 		{"valid simple", "user@example.com", false, ""},
 		{"valid subdomain", "user@mail.example.com", false, ""},
 		{"valid with plus", "user+tag@example.com", false, ""},
 		{"valid with dot", "user.name@example.com", false, ""},
+		// Invalid cases - empty
 		{"empty", "", true, "email cannot be empty"},
+		// Invalid cases - format errors
 		{"missing @", "userexample.com", true, "invalid email format"},
 		{"missing domain", "user@", true, "invalid email format"},
 		{"missing local", "@example.com", true, "invalid email format"},
@@ -164,15 +181,19 @@ func TestValidateUsername(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		// Valid cases
 		{"valid min length", "abc", false, ""},
 		{"valid with numbers", "user123", false, ""},
 		{"valid with underscore", "user_name", false, ""},
 		{"valid with hyphen", "user-name", false, ""},
 		{"valid with dot", "user.name", false, ""},
 		{"valid max length", strings.Repeat("a", 50), false, ""},
+		// Invalid cases - empty
 		{"empty", "", true, "username cannot be empty"},
+		// Invalid cases - length errors
 		{"too short", "ab", true, "username must be at least 3 characters"},
 		{"too long", strings.Repeat("a", 51), true, "username must be at most 50 characters"},
+		// Invalid cases - invalid characters
 		{"with space", "user name", true, "username can only contain letters"},
 		{"with @", "user@name", true, "username can only contain letters"},
 		{"with #", "user#name", true, "username can only contain letters"},
@@ -199,9 +220,11 @@ func TestValidatePageSize(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		// Valid cases
 		{"valid min", 1, false, ""},
 		{"valid middle", 50, false, ""},
 		{"valid max", 100, false, ""},
+		// Invalid cases - boundary errors
 		{"zero", 0, true, "page size must be greater than 0"},
 		{"negative", -1, true, "page size must be greater than 0"},
 		{"too large", 101, true, "page size must be at most 100"},
@@ -228,9 +251,11 @@ func TestValidatePageNumber(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		// Valid cases
 		{"valid zero", 0, false, ""},
 		{"valid positive", 1, false, ""},
 		{"valid large", 100, false, ""},
+		// Invalid cases - boundary errors
 		{"negative", -1, true, "page number must be >= 0"},
 	}
 
@@ -247,5 +272,3 @@ func TestValidatePageNumber(t *testing.T) {
 		})
 	}
 }
-
-
