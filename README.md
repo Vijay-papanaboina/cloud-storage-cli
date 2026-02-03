@@ -9,6 +9,13 @@ A command-line interface (CLI) tool for interacting with the Cloud Storage API. 
 - **Folder Management**: Create, list, delete folders and view folder statistics
 - **Configuration Management**: Manage CLI settings and API keys
 
+## Related Components
+
+This CLI tool is part of a complete cloud storage platform:
+
+- **Backend API**: [cloud-storage-api](https://github.com/Vijay-papanaboina/cloud-storage-api) - Spring Boot REST API with PostgreSQL
+- **Web Frontend**: [cloud-storage-frontend](https://github.com/Vijay-papanaboina/cloud-storage-frontend) - React + TypeScript web interface
+
 ## Installation
 
 ### Prerequisites
