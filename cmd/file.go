@@ -464,11 +464,23 @@ func displayFileList(pageResp *file.PageResponse) {
 		return
 	}
 
+	// Calculate actual totals - handle cases where backend returns incorrect pagination metadata
+	actualTotal := pageResp.TotalElements
+	if actualTotal == 0 && len(pageResp.Content) > 0 {
+		// If TotalElements is 0 but we have content, use content length as fallback
+		actualTotal = int64(len(pageResp.Content))
+	}
+	actualPages := pageResp.TotalPages
+	if actualPages == 0 && len(pageResp.Content) > 0 {
+		// If TotalPages is 0 but we have content, assume at least 1 page
+		actualPages = 1
+	}
+
 	// Print header
 	fmt.Printf("\nFiles (Page %d of %d, Total: %d)\n\n",
 		pageResp.Pageable.PageNumber+1,
-		pageResp.TotalPages,
-		pageResp.TotalElements)
+		actualPages,
+		actualTotal)
 
 	// Print table header
 	fmt.Printf("%-36s %-30s %-20s %-12s %-20s %-20s\n",
@@ -513,7 +525,13 @@ func displayFileList(pageResp *file.PageResponse) {
 
 	// Print pagination info
 	fmt.Println(strings.Repeat("-", 140))
-	fmt.Printf("Showing %d of %d files", pageResp.NumberOfElements, pageResp.TotalElements)
+	// Use actual content length if NumberOfElements is 0 or incorrect
+	actualCount := len(pageResp.Content)
+	if pageResp.NumberOfElements > 0 {
+		actualCount = pageResp.NumberOfElements
+	}
+	// Use calculated total from above
+	fmt.Printf("Showing %d of %d files", actualCount, actualTotal)
 	if !pageResp.First || !pageResp.Last {
 		fmt.Print(" (")
 		if !pageResp.First {
